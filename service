@@ -2,8 +2,14 @@
 ROOT=~/Services
 NAME="$2"
 if [ "$1" == "start" ]; then
-	cd $ROOT/$NAME && eval "$(pdm --pep582)"  && ./$NAME
+	touch /tmp/$NAME.log
+	cd $ROOT/$NAME
+	eval "$(pdm --pep582)"
+	nohup ./$NAME > /tmp/$NAME.log 2>&1 &
 elif [ "$1" == "stop" ]; then
 	PID=$(ps -ef | grep  "./$NAME" | awk '{print $2}' | head -n1)
 	kill $(pstree $PID -p -a -l | cut -d, -f2 | cut -d' ' -f1)
+	rm -rf /tmp/$NAME.log
+elif [ "$1" == "log" ]; then
+	$EDITOR less +G /tmp/$NAME.log
 fi
