@@ -39,6 +39,15 @@ elif [ "$1" == "enable" ]; then
 	mv $ROOT/$NAME/.$NAME $ROOT/$NAME/$NAME
 
 elif [ "$1" == "list" ]; then
-	(cd $ROOT && for d in */; do echo ${d::-1}; done)
+	if [ "$2" == "--all" ]; then
+		(cd $ROOT && for d in */; do echo ${d::-1}; done)
+	elif [ "$2" == "--enabled" ]; then
+		(cd $ROOT
+			for d in */; do
+				if [ -f "$d${d::-1}" ]; then
+					echo ${d::-1}
+				fi
+			done)
+	fi
 
 fi
