@@ -1,0 +1,9 @@
+#!/bin/bash
+ROOT=~/Services
+NAME="$2"
+if [ "$1" == "start" ]; then
+	cd $ROOT/$NAME && eval "$(pdm --pep582)"  && ./$NAME
+elif [ "$1" == "stop" ]; then
+	PID=$(ps -ef | grep  "./$NAME" | awk '{print $2}' | head -n1)
+	kill $(pstree $PID -p -a -l | cut -d, -f2 | cut -d' ' -f1)
+fi
