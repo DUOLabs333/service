@@ -6,7 +6,7 @@ if [ "$1" == "start" ]; then
 	cd $ROOT/$NAME
 	eval "$(pdm --pep582)"
 
-	if [ -f './$NAME' ]; then
+	if [ -f "./$NAME" ]; then
 		nohup ./$NAME > /tmp/$NAME.log 2>&1 &
 		touch /tmp/$NAME.log
 	fi
