@@ -1,15 +1,44 @@
 #!/bin/bash
 ROOT=~/Services
 NAME="$2"
+
 if [ "$1" == "start" ]; then
-	touch /tmp/$NAME.log
 	cd $ROOT/$NAME
 	eval "$(pdm --pep582)"
-	nohup ./$NAME > /tmp/$NAME.log 2>&1 &
+
+	if [ -f './$NAME' ]; then
+		nohup ./$NAME > /tmp/$NAME.log 2>&1 &
+		touch /tmp/$NAME.log
+	fi
+
 elif [ "$1" == "stop" ]; then
 	PID=$(ps -ef | grep  "./$NAME" | awk '{print $2}' | head -n1)
-	kill $(pstree $PID -p -a -l | cut -d, -f2 | cut -d' ' -f1)
+	kill $(pstree $PID -p -a -l | cut -d, -f2 | cut -d' ' -f1) &
 	rm -rf /tmp/$NAME.log
+
 elif [ "$1" == "log" ]; then
-	$EDITOR less +G /tmp/$NAME.log
+	EDITOR=$EDITOR less +G /tmp/$NAME.log
+
+elif [ "$1" == "status" ]; then
+	if [ -f "/tmp/$NAME.log" ]; then
+    	echo "Started"
+	else 
+    	echo "Stopped"
+    fi
+
+    if [ -f "$ROOT/$NAME/$NAME" ]; then
+    	echo "Enabled"
+	else 
+    	echo "Disabled"
+    fi
+
+elif [ "$1" == "disable" ]; then
+	mv $ROOT/$NAME/$NAME $ROOT/$NAME/.$NAME
+
+elif [ "$1" == "enable" ]; then
+	mv $ROOT/$NAME/.$NAME $ROOT/$NAME/$NAME
+
+elif [ "$1" == "list" ]; then
+	(cd $ROOT && for d in */; do echo ${d::-1}; done)
+
 fi

@@ -5,3 +5,10 @@ To make a new service, make a folder $SERVICE in Services, and a bash script in 
 To run the service in $FOLDER, run `nohup service start $SERVICE &`. To stop them, run `service stop $SERVICE`.
 
 This is not meant to a complete replacement for systemd, but is meant to be a lightweight alternative to managing services without having to resort to something like Docker.
+
+If you want to start `service` at boot, put this script in the appropiate area: 
+```
+#!/bin/bash
+cd ~/Services
+for d in */; do service start ${d::-1}; done
+```
