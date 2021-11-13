@@ -1,8 +1,15 @@
 #!/bin/bash
 ROOT=~/Services
-NAME="$2"
+NAME="${@: -1}"
 
 if [ "$1" == "start" ]; then
+
+	if [ "$2" == "--all" ]; then
+		cd $ROOT
+		for d in */; do service start ${d::-1}; done
+		exit 1
+	fi
+
 	cd $ROOT/$NAME
 	eval "$(pdm --pep582)"
 
@@ -35,8 +42,16 @@ elif [ "$1" == "status" ]; then
 elif [ "$1" == "disable" ]; then
 	mv $ROOT/$NAME/$NAME $ROOT/$NAME/.$NAME
 
+	if [ "$2" == "--now" ]; then
+		service stop $NAME
+	fi
+
 elif [ "$1" == "enable" ]; then
 	mv $ROOT/$NAME/.$NAME $ROOT/$NAME/$NAME
+
+	if [ "$2" == "--now" ]; then
+		service start $NAME
+	fi
 
 elif [ "$1" == "list" ]; then
 	if [ "$2" == "--all" ]; then
