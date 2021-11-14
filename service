@@ -20,7 +20,7 @@ if [ "$1" == "start" ]; then
 
 elif [ "$1" == "stop" ]; then
 	PID=$(ps -ef | grep  "./$NAME" | awk '{print $2}' | head -n1)
-	kill $(pstree $PID -p -a -l | cut -d, -f2 | cut -d' ' -f1) &
+	kill $(pstree $PID -p -a -l | cut -d, -f2 | cut -d' ' -f1)  > /dev/null 2>&1&
 	rm -rf /tmp/$NAME.log
 
 elif [ "$1" == "log" ]; then
@@ -40,6 +40,18 @@ elif [ "$1" == "status" ]; then
     fi
 
 elif [ "$1" == "disable" ]; then
+
+	if [ ! -f $ROOT/$NAME/$NAME ]; then
+	
+		if [ ! -f $ROOT/$NAME/.$NAME ]; then
+		
+			echo "Service $NAME does not exist"
+			exit 1
+		fi
+		echo "Service $NAME is not enabled"
+		exit 1
+	fi
+	
 	mv $ROOT/$NAME/$NAME $ROOT/$NAME/.$NAME
 
 	if [ "$2" == "--now" ]; then
@@ -47,6 +59,17 @@ elif [ "$1" == "disable" ]; then
 	fi
 
 elif [ "$1" == "enable" ]; then
+
+	if [ ! -f $ROOT/$NAME/.$NAME ]; then
+		
+			if [ ! -f $ROOT/$NAME/$NAME ]; then
+			
+				echo "Service $NAME does not exist"
+				exit 1
+			fi
+			echo "Service $NAME is not disabled"
+			exit 1
+		fi
 	mv $ROOT/$NAME/.$NAME $ROOT/$NAME/$NAME
 
 	if [ "$2" == "--now" ]; then
