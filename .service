@@ -6,7 +6,12 @@ if [ "$1" == "start" ]; then
 
 	if [ "$2" == "--all" ]; then
 		cd $ROOT
-		for d in */; do service start ${d::-1}; done
+		for d in */; do 
+			if [ -f "./$d" ]; then
+				service start ${d::-1}
+			fi
+		done
+
 		exit 1
 	fi
 
@@ -31,13 +36,14 @@ if [ "$1" == "start" ]; then
 	touch /tmp/$NAME.log
 
 elif [ "$1" == "stop" ]; then
-	PID=$(ps -ef | grep  "[.]./$NAME" | awk '{print $2}' | head -n1)
+	PID=$(ps -ef | grep  "[.]/$NAME" | awk '{print $2}' | head -n1)
 
 	if [ -z "${PID}" ]; then
 		PID=$(ps -ef | grep  "[.]/.$NAME" | awk '{print $2}' | head -n1)
 
 		if [ -z "${PID}" ]; then
 			echo "Service $NAME is not running"
+			rm -rf /tmp/$NAME.log
 			exit 1
 		fi
 	fi
@@ -99,7 +105,9 @@ elif [ "$1" == "enable" ]; then
 
 elif [ "$1" == "list" ]; then
 	if [ "$2" == "--all" ]; then
+	
 		(cd $ROOT && for d in */; do echo ${d::-1}; done)
+		
 	elif [ "$2" == "--enabled" ]; then
 		(cd $ROOT
 			for d in */; do
@@ -107,6 +115,16 @@ elif [ "$1" == "list" ]; then
 					echo ${d::-1}
 				fi
 			done)
+	elif [ "$2" == "--running" ]; then
+		for d in /tmp/*.log; do
+		
+			d=$(echo ${d##/tmp/})
+			d=$(echo ${d%%.log})
+
+			if [ -d $ROOT/$d ]; then
+				echo $d
+			fi
+		done
 	fi
 
 fi
