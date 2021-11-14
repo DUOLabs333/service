@@ -10,16 +10,37 @@ if [ "$1" == "start" ]; then
 		exit 1
 	fi
 
-	cd $ROOT/$NAME
+	cd $ROOT/$NAME > /dev/null 2>&1
 	eval "$(pdm --pep582)"
 
-	if [ -f "./$NAME" ]; then
-		nohup ./$NAME > /tmp/$NAME.log 2>&1 &
+	if [ ! -f "./$NAME" ]; then
+		if [ ! -f "./.$NAME" ]; then
+			echo "Service $NAME does not exist"
+			exit 1
+		fi
+
+		nohup ./.$NAME > /tmp/$NAME.log 2>&1 &
 		touch /tmp/$NAME.log
-	fi
+
+		exit 1
+
+		fi
+
+	
+	nohup ./$NAME > /tmp/$NAME.log 2>&1 &
+	touch /tmp/$NAME.log
 
 elif [ "$1" == "stop" ]; then
-	PID=$(ps -ef | grep  "./$NAME" | awk '{print $2}' | head -n1)
+	PID=$(ps -ef | grep  "[.]./$NAME" | awk '{print $2}' | head -n1)
+
+	if [ -z "${PID}" ]; then
+		PID=$(ps -ef | grep  "[.]/.$NAME" | awk '{print $2}' | head -n1)
+
+		if [ -z "${PID}" ]; then
+			echo "Service $NAME is not running"
+			exit 1
+		fi
+	fi
 	kill $(pstree $PID -p -a -l | cut -d, -f2 | cut -d' ' -f1)  > /dev/null 2>&1&
 	rm -rf /tmp/$NAME.log
 
