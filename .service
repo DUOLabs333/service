@@ -135,5 +135,20 @@ elif [ "$1" == "list" ]; then
 			fi
 		done
 	fi
-
+elif [ "$1" == "edit" ]; then
+	if [ ! -f $ROOT/$NAME/$NAME ]; then
+	
+		if [ ! -f $ROOT/$NAME/.$NAME ]; then
+		
+			echo "Service $NAME does not exist"
+			exit 1
+		fi
+		$EDITOR $ROOT/$NAME/.$NAME
+		exit 1
+	fi
+	$EDITOR $ROOT/$NAME/$NAME
+elif [ "$2" == "restart" ];
+	service stop $NAME
+	
+	service start $NAME
 fi
