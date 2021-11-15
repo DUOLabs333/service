@@ -148,7 +148,7 @@ elif [ "$1" == "edit" ]; then
 	fi
 	$EDITOR $ROOT/$NAME/$NAME
 
-elif [ "$2" == "restart" ]; then
+elif [ "$1" == "restart" ]; then
 	service stop $NAME
 	
 	service start $NAME
