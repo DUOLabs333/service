@@ -7,7 +7,7 @@ if [ "$1" == "start" ]; then
 	if [ "$2" == "--all" ]; then
 		cd $ROOT
 		for d in */; do 
-			if [ -d "./$d" ]; then
+			if [ -f "./$d/$d" ]; then
 				service start ${d::-1}
 			fi
 		done
@@ -36,6 +36,15 @@ if [ "$1" == "start" ]; then
 	touch /tmp/$NAME.log
 
 elif [ "$1" == "stop" ]; then
+
+	if [ "$2" == "--all" ]; then
+		for d in $(service list --running); do 
+			service stop $d
+		done
+
+		exit 1
+	fi
+	
 	PID=$(pgrep -f "./$NAME")
 
 	if [ -z "${PID}" ]; then
