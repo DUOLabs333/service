@@ -45,10 +45,10 @@ elif [ "$1" == "stop" ]; then
 		exit 1
 	fi
 	
-	PID=$(pgrep -f "./$NAME")
+	PID=$(pgrep -f "[.]/$NAME")
 
 	if [ -z "${PID}" ]; then
-		PID=$(pgrep -f "./.$NAME")
+		PID=$(pgrep -f "[.]/.$NAME")
 
 		if [ -z "${PID}" ]; then
 			echo "Service $NAME is not running"
