@@ -16,10 +16,9 @@ if [ "$1" == "start" ]; then
 	fi
 
 	cd $ROOT/$NAME > /dev/null 2>&1
-	eval "$(pdm --pep582)"
 
-	if [ ! -f "./$NAME" ]; then
-		if [ ! -f "./.$NAME" ]; then
+	if [ ! -f "$ROOT/$NAME/$NAME" ]; then
+		if [ ! -f "$ROOT/$NAME/.$NAME" ]; then
 			echo "Service $NAME does not exist"
 			exit 1
 		fi
