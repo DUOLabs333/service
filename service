@@ -55,7 +55,7 @@ elif [ "$1" == "stop" ]; then
 			exit 1
 		fi
 	fi
-	kill $(pstree $PID -p -a -l | cut -d, -f2 | cut -d' ' -f1)  > /dev/null 2>&1&
+	kill $(pstree $PID -p -a -l | cut -d, -f2 | cut -d' ' -f1)  > /dev/null 2>&1
 	rm -rf /tmp/$NAME.log
 
 elif [ "$1" == "log" ]; then
