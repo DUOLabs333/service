@@ -5,11 +5,8 @@ NAME="${@: -1}"
 if [ "$1" == "start" ]; then
 
 	if [ "$2" == "--all" ]; then
-		cd $ROOT
-		for d in */; do 
-			if [ -f "./${d::-1}/${d::-1}" ]; then
-				service start ${d::-1}
-			fi
+		for d in $(service list --enabled); do 
+			service start $d
 		done
 
 		exit 1
@@ -151,4 +148,12 @@ elif [ "$1" == "restart" ]; then
 	service stop $NAME
 	
 	service start $NAME
+
+	if [ "$2" == "--all" ]; then
+		service stop --all
+		
+		service start --all
+
+		exit 1
+	fi
 fi
