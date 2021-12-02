@@ -19,16 +19,17 @@ if [ "$1" == "start" ]; then
 			echo "Service $NAME does not exist"
 			exit 1
 		fi
-
-		nohup ./.$NAME > /tmp/$NAME.log 2>&1 &
+		
+		cd service 
+		nohup ../.$NAME > /tmp/$NAME.log 2>&1 &
 		touch /tmp/$NAME.log
 
 		exit 1
 
 		fi
 
-	
-	nohup ./$NAME > /tmp/$NAME.log 2>&1 &
+	cd service
+	nohup ../$NAME > /tmp/$NAME.log 2>&1 &
 	touch /tmp/$NAME.log
 
 elif [ "$1" == "stop" ]; then
@@ -41,10 +42,10 @@ elif [ "$1" == "stop" ]; then
 		exit 1
 	fi
 	
-	PID=$(pgrep -f "/bin/bash [.]/$NAME")
+	PID=$(pgrep -f "/bin/bash [.][.]/$NAME")
 
 	if [ -z "${PID}" ]; then
-		PID=$(pgrep -f "/bin/bash [.]/.$NAME")
+		PID=$(pgrep -f "/bin/bash [.][.]/.$NAME")
 
 		if [ -z "${PID}" ]; then
 			echo "Service $NAME is not running"
