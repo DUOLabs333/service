@@ -9,7 +9,7 @@ if [ "$1" == "start" ]; then
 			service start $d
 		done
 
-		exit 1
+		exit 0
 	fi
 
 	cd $ROOT/$NAME > /dev/null 2>&1
@@ -17,18 +17,20 @@ if [ "$1" == "start" ]; then
 	if [ ! -f "$ROOT/$NAME/$NAME" ]; then
 		if [ ! -f "$ROOT/$NAME/.$NAME" ]; then
 			echo "Service $NAME does not exist"
-			exit 1
+			exit 0
 		fi
 		
 		cd service 
+
 		nohup /bin/bash ../.$NAME > /tmp/$NAME.log 2>&1 &
 		touch /tmp/$NAME.log
 
-		exit 1
+		exit 0
 
 		fi
 
 	cd service
+
 	nohup /bin/bash ../$NAME > /tmp/$NAME.log 2>&1 &
 	touch /tmp/$NAME.log
 
@@ -39,7 +41,7 @@ elif [ "$1" == "stop" ]; then
 			service stop $d
 		done
 
-		exit 1
+		exit 0
 	fi
 	
 	PID=$(pgrep -f "/bin/bash ../$NAME")
@@ -50,7 +52,7 @@ elif [ "$1" == "stop" ]; then
 		if [ -z "${PID}" ]; then
 			echo "Service $NAME is not running"
 			rm -rf /tmp/$NAME.log
-			exit 1
+			exit 0
 		fi
 	fi
 	kill $(pstree $PID -p -a -l | cut -d, -f2 | cut -d' ' -f1)  > /dev/null 2>&1
@@ -79,10 +81,10 @@ elif [ "$1" == "disable" ]; then
 		if [ ! -f $ROOT/$NAME/.$NAME ]; then
 		
 			echo "Service $NAME does not exist"
-			exit 1
+			exit 0
 		fi
 		echo "Service $NAME is not enabled"
-		exit 1
+		exit 0
 	fi
 	
 	mv $ROOT/$NAME/$NAME $ROOT/$NAME/.$NAME
@@ -98,10 +100,10 @@ elif [ "$1" == "enable" ]; then
 			if [ ! -f $ROOT/$NAME/$NAME ]; then
 			
 				echo "Service $NAME does not exist"
-				exit 1
+				exit 0
 			fi
 			echo "Service $NAME is not disabled"
-			exit 1
+			exit 0
 		fi
 	mv $ROOT/$NAME/.$NAME $ROOT/$NAME/$NAME
 
@@ -138,10 +140,10 @@ elif [ "$1" == "edit" ]; then
 		if [ ! -f $ROOT/$NAME/.$NAME ]; then
 		
 			echo "Service $NAME does not exist"
-			exit 1
+			exit 0
 		fi
 		$EDITOR $ROOT/$NAME/.$NAME
-		exit 1
+		exit 0
 	fi
 	$EDITOR $ROOT/$NAME/$NAME
 
@@ -155,6 +157,6 @@ elif [ "$1" == "restart" ]; then
 		
 		service start --all
 
-		exit 1
+		exit 0
 	fi
 fi
