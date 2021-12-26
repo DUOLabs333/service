@@ -55,11 +55,13 @@ elif [ "$1" == "stop" ]; then
 			exit 0
 		fi
 	fi
-	kill $(pstree $PID -p -a -l | cut -d, -f2 | cut -d' ' -f1)  > /dev/null 2>&1
+	for proc in $PID; do
+		kill $(pstree $proc -p -a -l | cut -d, -f2 | cut -d' ' -f1)  > /dev/null 2>&1
+	done
 	rm -rf /tmp/$NAME.log
 
 elif [ "$1" == "log" ]; then
-	EDITOR=$EDITOR less +G /tmp/$NAME.log
+	EDITOR=$EDITOR less +G +F /tmp/$NAME.log
 
 elif [ "$1" == "status" ]; then
 	if [ -f "/tmp/$NAME.log" ]; then
