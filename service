@@ -2,6 +2,24 @@
 ROOT=~/Services
 NAME="${@: -1}"
 
+pidtree() (
+    declare -A CHILDS
+    while read P PP;do
+        CHILDS[$PP]+=" $P"
+    done < <(ps -e -o pid= -o ppid=)
+
+    walk() {
+        echo $1
+        for i in ${CHILDS[$1]};do
+            walk $i
+        done
+    }
+
+    for i in "$@";do
+        walk $i
+    done
+)
+
 if [ "$1" == "start" ]; then
 
 	if [ "$2" == "--all" ]; then
@@ -37,6 +55,8 @@ if [ "$1" == "start" ]; then
 elif [ "$1" == "stop" ]; then
 
 	if [ "$2" == "--all" ]; then
+
+
 		for d in $(service list --running); do 
 			service stop $d
 		done
@@ -56,7 +76,7 @@ elif [ "$1" == "stop" ]; then
 		fi
 	fi
 	for proc in $PID; do
-		kill $(pstree $proc -p -a -l | cut -d, -f2 | cut -d' ' -f1)  > /dev/null 2>&1
+		kill $(pidtree $proc )  > /dev/null 2>&1
 	done
 	rm -rf /tmp/$NAME.log
 
