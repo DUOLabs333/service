@@ -32,13 +32,19 @@ if [ "$1" == "start" ]; then
 
 	cd $ROOT/$NAME > /dev/null 2>&1
 
+	if [ -f /tmp/$NAME.log ]; then
+		echo "Service $NAME has already been started"
+		exit 0
+	fi
+	
 	if [ ! -f "$ROOT/$NAME/$NAME" ]; then
 		if [ ! -f "$ROOT/$NAME/.$NAME" ]; then
 			echo "Service $NAME does not exist"
 			exit 0
 		fi
 		
-		cd service 
+		cd service
+
 
 		nohup /bin/bash ../.$NAME > /tmp/$NAME.log 2>&1 &
 		touch /tmp/$NAME.log
