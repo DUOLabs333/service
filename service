@@ -1,23 +1,9 @@
-#!/usr/bin/env bash
+#!/bin/bash
 ROOT=~/Services
-NAME="${@: -1}"
+export NAME="${@: -1}"
 
-pidtree() (
-    declare -A CHILDS
-    while read P PP;do
-        CHILDS[$PP]+=" $P"
-    done < <(ps -e -o pid= -o ppid=)
-
-    walk() {
-        echo $1
-        for i in ${CHILDS[$1]};do
-            walk $i
-        done
-    }
-
-    for i in "$@";do
-        walk $i
-    done
+keepalive() (
+	trap "sleep infinity" EXIT; $1
 )
 
 if [ "$1" == "start" ]; then
@@ -37,6 +23,7 @@ if [ "$1" == "start" ]; then
 		exit 0
 	fi
 	
+	export -f keepalive
 	if [ ! -f "$ROOT/$NAME/$NAME" ]; then
 		if [ ! -f "$ROOT/$NAME/.$NAME" ]; then
 			echo "Service $NAME does not exist"
@@ -45,8 +32,7 @@ if [ "$1" == "start" ]; then
 		
 		cd service
 
-
-		nohup /bin/bash ../.$NAME > /tmp/$NAME.log 2>&1 &
+		setsid -f bash -c 'trap "rm -f /tmp/$NAME.log; kill -- -$$" EXIT; bash ../."$NAME"' > /tmp/$NAME.log 2>&1
 		touch /tmp/$NAME.log
 
 		exit 0
@@ -55,7 +41,7 @@ if [ "$1" == "start" ]; then
 
 	cd service
 
-	nohup /bin/bash ../$NAME > /tmp/$NAME.log 2>&1 &
+	setsid -f bash -c 'trap "rm -f /tmp/$NAME.log; kill -- -$$" EXIT; bash ../"$NAME"' > /tmp/$NAME.log 2>&1 &
 	touch /tmp/$NAME.log
 
 elif [ "$1" == "stop" ]; then
@@ -70,21 +56,19 @@ elif [ "$1" == "stop" ]; then
 		exit 0
 	fi
 	
-	PID=$(pgrep -f "/bin/bash ../$NAME")
+	PID=$(pgrep -f "^bash ../$NAME$")
 
 	if [ -z "${PID}" ]; then
-		PID=$(pgrep -f "/bin/bash ../.$NAME")
+		PID=$(pgrep -f "^bash ../.$NAME$")
 
 		if [ -z "${PID}" ]; then
 			echo "Service $NAME is not running"
-			rm -rf /tmp/$NAME.log
 			exit 0
 		fi
 	fi
 	for proc in $PID; do
-		kill $(pidtree $proc )  > /dev/null 2>&1
+		kill $proc  > /dev/null 2>&1
 	done
-	rm -rf /tmp/$NAME.log
 
 elif [ "$1" == "log" ]; then
 	EDITOR=$EDITOR less +G +F /tmp/$NAME.log
