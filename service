@@ -2,9 +2,9 @@
 ROOT=~/Services
 export NAME="${@: -1}"
 
-keepalive() (
-	(trap "sleep infinity" EXIT; $1) &
-)
+Down() {
+	trap "$1" EXIT
+}
 
 if [ "$1" == "start" ]; then
 
@@ -23,7 +23,7 @@ if [ "$1" == "start" ]; then
 		exit 0
 	fi
 	
-	export -f keepalive
+	export -f Down
 	if [ ! -f "$ROOT/$NAME/$NAME" ]; then
 		if [ ! -f "$ROOT/$NAME/.$NAME" ]; then
 			echo "Service $NAME does not exist"
