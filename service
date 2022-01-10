@@ -6,6 +6,14 @@ Down() {
 	trap "$1" EXIT
 }
 
+Wait() {
+	sleep infinity
+}
+
+Loop() {
+	(while true; do $1; sleep $2; done) &
+}
+
 if [ "$1" == "start" ]; then
 
 	if [ "$2" == "--all" ]; then
@@ -24,6 +32,8 @@ if [ "$1" == "start" ]; then
 	fi
 	
 	export -f Down
+	export -f Wait
+	export -f Loop
 	if [ ! -f "$ROOT/$NAME/$NAME" ]; then
 		if [ ! -f "$ROOT/$NAME/.$NAME" ]; then
 			echo "Service $NAME does not exist"
@@ -175,4 +185,8 @@ elif [ "$1" == "restart" ]; then
 
 		exit 0
 	fi
+elif [ "$1" == "init" ]; then
+	mkdir $ROOT/$NAME
+	touch $ROOT/$NAME/.$NAME
+	mkdir $ROOT/$NAME/service
 fi
