@@ -11,7 +11,7 @@ Wait() {
 }
 
 Loop() {
-	(while true; do eval $1; sleep $2; done) &
+	(while true; do eval "$1"; sleep $2; done) &
 }
 
 if [ "$1" == "start" ]; then
