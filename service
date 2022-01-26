@@ -14,19 +14,23 @@ Loop() {
 	(while true; do eval "$1"; sleep $2; done) &
 }
 
-if [ "$1" == "start" ]; then
-
-	if [ "$2" == "--all" ]; then
-		for d in $(service list --enabled); do 
-			service start $d
+_start() {
+	if [ "$1" == "--all" ]; then
+		for d in $(_list --enabled); do 
+			_start $d
 		done
 
 		exit 0
 	fi
 
+	if [ $(_status $NAME | grep "does not exist") ]; then
+		echo "Service $NAME does not exist"
+		exit 0
+	fi
+
 	cd $ROOT/$NAME > /dev/null 2>&1
 
-	if [ -f /tmp/$NAME.log ]; then
+	if [ $(_status $NAME | grep "Started") ]; then
 		echo "Service $NAME has already been started"
 		exit 0
 	fi
@@ -34,36 +38,36 @@ if [ "$1" == "start" ]; then
 	export -f Down
 	export -f Wait
 	export -f Loop
-	if [ ! -f "$ROOT/$NAME/$NAME" ]; then
-		if [ ! -f "$ROOT/$NAME/.$NAME" ]; then
-			echo "Service $NAME does not exist"
-			exit 0
-		fi
-		
+
+	if [ -f "$ROOT/$NAME/.$NAME" ]; then
 		cd service
 
 		setsid -f bash -c 'trap "rm -f /tmp/$NAME.log; kill -- -$$" EXIT; bash ../."$NAME"' > /tmp/$NAME.log 2>&1
 		touch /tmp/$NAME.log
 
 		sleep 5
+
+	else
+		cd service
+
+		setsid -f bash -c 'trap "rm -f /tmp/$NAME.log; kill -- -$$" EXIT; bash ../"$NAME"' > /tmp/$NAME.log 2>&1 &
+		touch /tmp/$NAME.log
+
+		sleep 5
+	fi
+}
+
+_stop() {
+
+	if [ $(_status $NAME | grep "does not exist") ]; then
+		echo "Service $NAME does not exist"
 		exit 0
+	fi
 
-		fi
-
-	cd service
-
-	setsid -f bash -c 'trap "rm -f /tmp/$NAME.log; kill -- -$$" EXIT; bash ../"$NAME"' > /tmp/$NAME.log 2>&1 &
-	touch /tmp/$NAME.log
-
-	sleep 5
-
-elif [ "$1" == "stop" ]; then
-
-	if [ "$2" == "--all" ]; then
-
+	if [ "$1" == "--all" ]; then
 
 		for d in $(service list --running); do 
-			service stop $d
+			_stop $d
 		done
 
 		exit 0
@@ -84,10 +88,19 @@ elif [ "$1" == "stop" ]; then
 	done
 	sleep 5
 
-elif [ "$1" == "log" ]; then
-	EDITOR=$EDITOR less +G +F /tmp/$NAME.log
+}
 
-elif [ "$1" == "status" ]; then
+_log() {
+	EDITOR=$EDITOR less +G +F /tmp/$NAME.log
+}
+
+_status() {
+
+	if [ ! -f "$ROOT/$NAME/$NAME" ] && [ ! -f "$ROOT/$NAME/.$NAME" ]; then
+		echo "Service $NAME does not exist"
+		exit 0
+	fi
+
 	if [ -f "/tmp/$NAME.log" ]; then
     	echo "Started"
 	else 
@@ -99,9 +112,9 @@ elif [ "$1" == "status" ]; then
 	else 
     	echo "Disabled"
     fi
+}
 
-elif [ "$1" == "disable" ]; then
-
+_disable() {
 	if [ ! -f $ROOT/$NAME/$NAME ]; then
 	
 		if [ ! -f $ROOT/$NAME/.$NAME ]; then
@@ -115,41 +128,42 @@ elif [ "$1" == "disable" ]; then
 	
 	mv $ROOT/$NAME/$NAME $ROOT/$NAME/.$NAME
 
-	if [ "$2" == "--now" ]; then
-		service stop $NAME
+	if [ "$1" == "--now" ]; then
+		_stop $NAME
+	fi
+}
+
+_enable() {
+	if [ $(_status $NAME | grep "does not exist") ]; then
+		echo "Service $NAME does not exist"
+		exit 0
 	fi
 
-elif [ "$1" == "enable" ]; then
+	if [ $(_status $NAME | grep "Enabled") ]; then
+		echo "Service $NAME is already enabled"
+		exit 0
+	fi
 
-	if [ ! -f $ROOT/$NAME/.$NAME ]; then
-		
-			if [ ! -f $ROOT/$NAME/$NAME ]; then
-			
-				echo "Service $NAME does not exist"
-				exit 0
-			fi
-			echo "Service $NAME is not disabled"
-			exit 0
-		fi
 	mv $ROOT/$NAME/.$NAME $ROOT/$NAME/$NAME
 
-	if [ "$2" == "--now" ]; then
+	if [ "$1" == "--now" ]; then
 		service start $NAME
 	fi
+}
 
-elif [ "$1" == "list" ]; then
-	if [ "$2" == "--all" ]; then
+_list() {
+	if [ "$1" == "--all" ]; then
 	
 		(cd $ROOT && for d in */; do echo ${d::-1}; done)
 		
-	elif [ "$2" == "--enabled" ]; then
+	elif [ "$1" == "--enabled" ]; then
 		(cd $ROOT
 			for d in */; do
 				if [ -f "$d${d::-1}" ]; then
 					echo ${d::-1}
 				fi
 			done)
-	elif [ "$2" == "--running" ]; then
+	elif [ "$1" == "--running" ]; then
 		for d in /tmp/*.log; do
 		
 			d=$(echo ${d##/tmp/})
@@ -160,33 +174,45 @@ elif [ "$1" == "list" ]; then
 			fi
 		done
 	fi
-elif [ "$1" == "edit" ]; then
-	if [ ! -f $ROOT/$NAME/$NAME ]; then
-	
-		if [ ! -f $ROOT/$NAME/.$NAME ]; then
-		
-			echo "Service $NAME does not exist"
-			exit 0
-		fi
+}
+
+_edit() {
+
+	if [ $(_status $NAME | grep "does not exist") ]; then
+		echo "Service $NAME does not exist"
+		exit 0
+	fi
+
+	if [ -f $ROOT/$NAME/$NAME ]; then
+
+		$EDITOR $ROOT/$NAME/$NAME
+	else
 		$EDITOR $ROOT/$NAME/.$NAME
-		exit 0
 	fi
-	$EDITOR $ROOT/$NAME/$NAME
+}
 
-elif [ "$1" == "restart" ]; then
-	service stop $NAME
+_restart() {
+	_stop $NAME
 	
-	service start $NAME
+	_start $NAME
 
-	if [ "$2" == "--all" ]; then
-		service stop --all
+	if [ "$1" == "--all" ]; then
+		_stop --all
 		
-		service start --all
+		_start --all
 
 		exit 0
 	fi
-elif [ "$1" == "init" ]; then
+}
+
+_init() {
 	mkdir $ROOT/$NAME
 	touch $ROOT/$NAME/.$NAME
 	mkdir $ROOT/$NAME/service
+}
+
+if [[ $(type -t _"$1") == "function" ]]; then
+	_"$1" "${@:2}"
+else
+	echo "Command $1 doesn't exist"
 fi
