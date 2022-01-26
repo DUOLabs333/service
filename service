@@ -15,7 +15,7 @@ Loop() {
 }
 
 _init() {
-	NAME="${@: -1}"
+	export NAME="${@: -1}"
 }
 _start() {
 	_init $@
