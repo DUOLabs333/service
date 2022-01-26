@@ -15,24 +15,25 @@ Loop() {
 }
 
 _start() {
+	export NAME="${@: -1}"
 	if [ "$1" == "--all" ]; then
-		for d in $(_list --enabled); do 
+		for d in $(_list --enabled); do
 			_start $d
 		done
 
-		exit 0
+		return
 	fi
-
-	if [ $(_status $NAME | grep "does not exist") ]; then
+	
+	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
-		exit 0
+		return 
 	fi
 
 	cd $ROOT/$NAME > /dev/null 2>&1
 
 	if [ $(_status $NAME | grep "Started") ]; then
 		echo "Service $NAME has already been started"
-		exit 0
+		return
 	fi
 	
 	export -f Down
@@ -58,20 +59,22 @@ _start() {
 }
 
 _stop() {
-
-	if [ $(_status $NAME | grep "does not exist") ]; then
-		echo "Service $NAME does not exist"
-		exit 0
-	fi
-
+	
+	export NAME="${@: -1}"
 	if [ "$1" == "--all" ]; then
 
 		for d in $(service list --running); do 
 			_stop $d
 		done
 
-		exit 0
+		return 
 	fi
+	
+	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
+		echo "Service $NAME does not exist"
+		return 
+	fi
+
 	
 	PID=$(pgrep -f "^bash ../$NAME$")
 
@@ -80,7 +83,7 @@ _stop() {
 
 		if [ -z "${PID}" ]; then
 			echo "Service $NAME is not running"
-			exit 0
+			return 
 		fi
 	fi
 	for proc in $PID; do
@@ -98,7 +101,7 @@ _status() {
 
 	if [ ! -f "$ROOT/$NAME/$NAME" ] && [ ! -f "$ROOT/$NAME/.$NAME" ]; then
 		echo "Service $NAME does not exist"
-		exit 0
+		return 
 	fi
 
 	if [ -f "/tmp/$NAME.log" ]; then
@@ -120,10 +123,10 @@ _disable() {
 		if [ ! -f $ROOT/$NAME/.$NAME ]; then
 		
 			echo "Service $NAME does not exist"
-			exit 0
+			return 
 		fi
 		echo "Service $NAME is not enabled"
-		exit 0
+		return 
 	fi
 	
 	mv $ROOT/$NAME/$NAME $ROOT/$NAME/.$NAME
@@ -134,14 +137,14 @@ _disable() {
 }
 
 _enable() {
-	if [ $(_status $NAME | grep "does not exist") ]; then
+	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
-		exit 0
+		return 
 	fi
 
 	if [ $(_status $NAME | grep "Enabled") ]; then
 		echo "Service $NAME is already enabled"
-		exit 0
+		return 
 	fi
 
 	mv $ROOT/$NAME/.$NAME $ROOT/$NAME/$NAME
@@ -178,9 +181,9 @@ _list() {
 
 _edit() {
 
-	if [ $(_status $NAME | grep "does not exist") ]; then
+	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
-		exit 0
+		return 
 	fi
 
 	if [ -f $ROOT/$NAME/$NAME ]; then
@@ -201,7 +204,7 @@ _restart() {
 		
 		_start --all
 
-		exit 0
+		return 
 	fi
 }
 
@@ -212,7 +215,7 @@ _init() {
 }
 
 if [[ $(type -t _"$1") == "function" ]]; then
-	_"$1" "${@:2}"
+	 _"$1" "${@:2}"
 else
 	echo "Command $1 doesn't exist"
 fi
