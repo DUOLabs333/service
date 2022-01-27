@@ -11,7 +11,7 @@ Wait() {
 }
 
 Loop() {
-	(while true; do eval "$1"; sleep $2; done) &
+	(while true; do "$1"; sleep $2; done) &
 }
 
 _init() {
@@ -123,16 +123,17 @@ _status() {
 
 _disable() {
 	_init $@
-	if [ ! -f $ROOT/$NAME/$NAME ]; then
-	
-		if [ ! -f $ROOT/$NAME/.$NAME ]; then
-		
-			echo "Service $NAME does not exist"
-			return 
-		fi
-		echo "Service $NAME is not enabled"
+
+	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
+		echo "Service $NAME does not exist"
 		return 
 	fi
+
+	if [[ $(_status $NAME | grep "Disabled") != "" ]]; then
+		echo "Service $NAME is already disabled"
+		return 
+	fi
+
 	
 	mv $ROOT/$NAME/$NAME $ROOT/$NAME/.$NAME
 
@@ -143,6 +144,7 @@ _disable() {
 
 _enable() {
 	_init $@
+
 	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
 		return 
