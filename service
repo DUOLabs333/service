@@ -97,7 +97,7 @@ _stop() {
 
 _log() {
 	_init $@
-	EDITOR=$EDITOR less +G +F /tmp/$NAME.log
+	EDITOR=$EDITOR less +G +F -f /tmp/$NAME.log
 }
 
 _status() {
