@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-ROOT=~/Services
 
+export ROOT=~/Services
 
 Down() {
 	trap "$1" EXIT
@@ -19,7 +19,7 @@ _init() {
 }
 _start() {
 	_init $@
-	if [ "$1" == "--all" ]; then
+	if [ "$#" -eq 0 ]; then
 		for d in $(_list --enabled); do
 			_start $d
 		done
@@ -32,7 +32,7 @@ _start() {
 		return 
 	fi
 
-	cd $ROOT/$NAME > /dev/null 2>&1
+	cd $ROOT/$NAME
 
 	if [ $(_status $NAME | grep "Started") ]; then
 		echo "Service $NAME has already been started"
@@ -42,19 +42,18 @@ _start() {
 	export -f Down
 	export -f Wait
 	export -f Loop
+	
+	cd data
+	if [ $(_status $NAME | grep "Disabled") ]; then
 
-	if [ -f "$ROOT/$NAME/.$NAME" ]; then
-		cd service
-
-		setsid -f bash -c 'trap "rm -f /tmp/$NAME.log; kill -- -$$" EXIT; bash ../."$NAME"' > /tmp/$NAME.log 2>&1
+		setsid -f bash -c 'trap "rm -f /tmp/$NAME.log; kill -- -$$" EXIT; bash $ROOT/$NAME/.service' > /tmp/$NAME.log 2>&1 &
 		touch /tmp/$NAME.log
 
 		sleep 5
 
 	else
-		cd service
 
-		setsid -f bash -c 'trap "rm -f /tmp/$NAME.log; kill -- -$$" EXIT; bash ../"$NAME"' > /tmp/$NAME.log 2>&1 &
+		setsid -f bash -c 'trap "rm -f /tmp/$NAME.log; kill -- -$$" EXIT; bash $ROOT/$NAME/service' > /tmp/$NAME.log 2>&1 &
 		touch /tmp/$NAME.log
 
 		sleep 5
@@ -63,7 +62,7 @@ _start() {
 
 _stop() {
 	_init $@
-	if [ "$1" == "--all" ]; then
+	if [ "$#" -eq 0 ]; then
 
 		for d in $(service list --running); do 
 			_stop $d
@@ -78,10 +77,10 @@ _stop() {
 	fi
 
 	
-	PID=$(pgrep -f "^bash ../$NAME$")
+	PID=$(pgrep -f "^bash $ROOT/$NAME/service$")
 
 	if [ -z "${PID}" ]; then
-		PID=$(pgrep -f "^bash ../.$NAME$")
+		PID=$(pgrep -f "^bash $ROOT/$NAME/.service$")
 
 		if [ -z "${PID}" ]; then
 			echo "Service $NAME is not running"
@@ -103,7 +102,7 @@ _log() {
 _status() {
 	
 	_init $@
-	if [ ! -f "$ROOT/$NAME/$NAME" ] && [ ! -f "$ROOT/$NAME/.$NAME" ]; then
+	if [ ! -f "$ROOT/$NAME/service" ] && [ ! -f "$ROOT/$NAME/.service" ]; then
 		echo "Service $NAME does not exist"
 		return 
 	fi
@@ -114,7 +113,7 @@ _status() {
     	echo "Stopped"
     fi
 
-    if [ -f "$ROOT/$NAME/$NAME" ]; then
+    if [ -f "$ROOT/$NAME/service" ]; then
     	echo "Enabled"
 	else 
     	echo "Disabled"
@@ -135,7 +134,7 @@ _disable() {
 	fi
 
 	
-	mv $ROOT/$NAME/$NAME $ROOT/$NAME/.$NAME
+	mv $ROOT/$NAME/service $ROOT/$NAME/.service
 
 	if [ "$1" == "--now" ]; then
 		_stop $NAME
@@ -155,7 +154,7 @@ _enable() {
 		return 
 	fi
 
-	mv $ROOT/$NAME/.$NAME $ROOT/$NAME/$NAME
+	mv $ROOT/$NAME/.service $ROOT/$NAME/service
 
 	if [ "$1" == "--now" ]; then
 		service start $NAME
@@ -166,13 +165,13 @@ _list() {
 	_init $@
 	if [ "$1" == "--all" ]; then
 	
-		(cd $ROOT && for d in */; do echo ${d::-1}; done)
+		(cd $ROOT && for d in $(ls -d *); do echo $d; done)
 		
 	elif [ "$1" == "--enabled" ]; then
 		(cd $ROOT
-			for d in */; do
-				if [ -f "$d${d::-1}" ]; then
-					echo ${d::-1}
+			for d in $(ls -d *); do
+				if [ $(_status $d | grep "Enabled") ]; then
+					echo $d
 				fi
 			done)
 	elif [ "$1" == "--running" ]; then
@@ -195,11 +194,11 @@ _edit() {
 		return 
 	fi
 
-	if [ -f $ROOT/$NAME/$NAME ]; then
+	if [ $(_status $NAME | grep "Disabled") ]; then
 
-		$EDITOR $ROOT/$NAME/$NAME
+		$EDITOR $ROOT/$NAME/.service
 	else
-		$EDITOR $ROOT/$NAME/.$NAME
+		$EDITOR $ROOT/$NAME/service
 	fi
 }
 
