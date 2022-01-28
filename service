@@ -19,14 +19,20 @@ _init() {
 }
 _start() {
 	_init $@
-	if [ "$#" -eq 0 ]; then
-		for d in $(_list --enabled); do
-			_start $d
-		done
 
+
+	if [ "$#" -eq 0 ]; then
+		${FUNCNAME[0]} --enabled
+	fi
+
+	if [[ "$1" =~ "--" ]]; then
+		for d in $(service list "$1"); do 
+			${FUNCNAME[0]} $d
+		done
 		return
 	fi
-	
+
+
 	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
 		return 
@@ -62,13 +68,16 @@ _start() {
 
 _stop() {
 	_init $@
+
 	if [ "$#" -eq 0 ]; then
+		${FUNCNAME[0]} --enabled
+	fi
 
-		for d in $(service list --running); do 
-			_stop $d
+	if [[ "$1" =~ "--" ]]; then
+		for d in $(service list "$1"); do 
+			${FUNCNAME[0]} $d
 		done
-
-		return 
+		return
 	fi
 	
 	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
@@ -123,6 +132,17 @@ _status() {
 _disable() {
 	_init $@
 
+	if [ "$#" -eq 0 ]; then
+		${FUNCNAME[0]} --enabled
+	fi
+
+	if [[ "$1" =~ "--" ]]; then
+		for d in $(service list "$1"); do 
+			${FUNCNAME[0]} $d
+		done
+		return
+	fi
+
 	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
 		return 
@@ -143,6 +163,18 @@ _disable() {
 
 _enable() {
 	_init $@
+
+
+	if [ "$#" -eq 0 ]; then
+		${FUNCNAME[0]} --enabled
+	fi
+
+	if [[ "$1" =~ "--" ]]; then
+		for d in $(service list "$1"); do 
+			${FUNCNAME[0]} $d
+		done
+		return
+	fi
 
 	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
@@ -204,24 +236,16 @@ _edit() {
 
 _restart() {
 	_init $@
-	_stop $NAME
-	
-	_start $NAME
 
-	if [ "$1" == "--all" ]; then
-		_stop --all
-		
-		_start --all
-
-		return 
-	fi
+	_stop "$@"
+	_start "$@"
 }
 
 _new() {
 	_init $@
 	mkdir $ROOT/$NAME
-	touch $ROOT/$NAME/.$NAME
-	mkdir $ROOT/$NAME/service
+	touch $ROOT/$NAME/data
+	mkdir $ROOT/$NAME/.service
 }
 
 if [[ $(type -t _"$1") == "function" ]]; then
