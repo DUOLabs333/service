@@ -200,19 +200,21 @@ _list() {
 		(cd $ROOT && for d in $(ls -d *); do echo $d; done)
 		
 	elif [ "$1" == "--enabled" ]; then
-		(cd $ROOT
-			for d in $(ls -d *); do
-				if [ $(_status $d | grep "Enabled") ]; then
-					echo $d
-				fi
-			done)
-	elif [ "$1" == "--running" ]; then
-		for d in /tmp/*.log; do
-		
-			d=$(echo ${d##/tmp/})
-			d=$(echo ${d%%.log})
-
-			if [ -d $ROOT/$d ]; then
+		cd $ROOT
+		for d in $(ls -d *); do
+			if [ $(_status $d | grep "Enabled") ]; then
+				echo $d
+			fi
+		done
+	elif [ "$1" == "--started" ]; then
+		for d in $(_list --all); do
+			if [ -f /tmp/$d.log ]; then
+				echo $d
+			fi
+		done
+	elif [ "$1" == "--stopped" ]; then
+		for d in $(_list --all); do
+			if [ ! -f /tmp/$d.log ]; then
 				echo $d
 			fi
 		done
