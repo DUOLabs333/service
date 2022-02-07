@@ -2,6 +2,12 @@
 
 export ROOT=~/Services
 
+if [[ ! -d /tmp ]]; then
+	export LOGPATH=$TMPDIR
+else
+	export LOGPATH=/tmp
+fi
+
 Down() {
 	trap "$1" EXIT
 }
@@ -50,17 +56,16 @@ _start() {
 	export -f Loop
 	
 	cd data
+	touch $LOGPATH/$NAME.log
 	if [ $(_status $NAME | grep "Disabled") ]; then
 
-		setsid -f bash -c 'trap "rm -f /tmp/$NAME.log; kill -- -$$" EXIT; bash $ROOT/$NAME/.service' > /tmp/$NAME.log 2>&1 &
-		touch /tmp/$NAME.log
+		setsid -f bash -c 'trap "rm -f $LOGPATH/$NAME.log; kill -- -$$" EXIT; bash $ROOT/$NAME/.service' > $LOGPATH/$NAME.log 2>&1 &
 
 		sleep 5
 
 	else
 
-		setsid -f bash -c 'trap "rm -f /tmp/$NAME.log; kill -- -$$" EXIT; bash $ROOT/$NAME/service' > /tmp/$NAME.log 2>&1 &
-		touch /tmp/$NAME.log
+		setsid -f bash -c 'trap "rm -f $LOGPATH/$NAME.log; kill -- -$$" EXIT; bash $ROOT/$NAME/service' > $LOGPATH/$NAME.log 2>&1 &
 
 		sleep 5
 	fi
@@ -105,7 +110,7 @@ _stop() {
 
 _log() {
 	_init $@
-	EDITOR=$EDITOR less +G +F -f /tmp/$NAME.log
+	EDITOR=$EDITOR less +G +F -f $LOGPATH/$NAME.log
 }
 
 _status() {
@@ -116,7 +121,7 @@ _status() {
 		return 
 	fi
 
-	if [ -f "/tmp/$NAME.log" ]; then
+	if [ -f "$LOGPATH/$NAME.log" ]; then
     	echo "Started"
 	else 
     	echo "Stopped"
@@ -208,13 +213,13 @@ _list() {
 		done
 	elif [ "$1" == "--started" ]; then
 		for d in $(_list --all); do
-			if [ -f /tmp/$d.log ]; then
+			if [ -f $LOGPATH/$d.log ]; then
 				echo $d
 			fi
 		done
 	elif [ "$1" == "--stopped" ]; then
 		for d in $(_list --all); do
-			if [ ! -f /tmp/$d.log ]; then
+			if [ ! -f $LOGPATH/$d.log ]; then
 				echo $d
 			fi
 		done
