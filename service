@@ -22,21 +22,20 @@ Loop() {
 
 _init() {
 	export NAME="${@: -1}"
-}
-_start() {
-	_init $@
-
 
 	if [ "$#" -eq 0 ]; then
-		${FUNCNAME[0]} --enabled
+		${FUNCNAME[1]} --enabled
 	fi
 
 	if [[ "$1" =~ "--" ]]; then
 		for d in $(service list "$1"); do 
-			${FUNCNAME[0]} $d
+			${FUNCNAME[1]} $d
 		done
 		return
 	fi
+}
+_start() {
+	_init $@
 
 
 	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
@@ -74,16 +73,6 @@ _start() {
 _stop() {
 	_init $@
 
-	if [ "$#" -eq 0 ]; then
-		${FUNCNAME[0]} --enabled
-	fi
-
-	if [[ "$1" =~ "--" ]]; then
-		for d in $(service list "$1"); do 
-			${FUNCNAME[0]} $d
-		done
-		return
-	fi
 	
 	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
@@ -137,17 +126,6 @@ _status() {
 _disable() {
 	_init $@
 
-	if [ "$#" -eq 0 ]; then
-		${FUNCNAME[0]} --enabled
-	fi
-
-	if [[ "$1" =~ "--" ]]; then
-		for d in $(service list "$1"); do 
-			${FUNCNAME[0]} $d
-		done
-		return
-	fi
-
 	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
 		return 
@@ -169,17 +147,6 @@ _disable() {
 _enable() {
 	_init $@
 
-
-	if [ "$#" -eq 0 ]; then
-		${FUNCNAME[0]} --enabled
-	fi
-
-	if [[ "$1" =~ "--" ]]; then
-		for d in $(service list "$1"); do 
-			${FUNCNAME[0]} $d
-		done
-		return
-	fi
 
 	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
