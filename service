@@ -246,8 +246,8 @@ _restart() {
 _new() {
 	_init $@
 	mkdir $ROOT/$NAME
-	touch $ROOT/$NAME/data
-	mkdir $ROOT/$NAME/.service
+	mkdir $ROOT/$NAME/data
+	touch $ROOT/$NAME/.service
 }
 
 if [[ $(type -t _"$1") == "function" ]]; then
