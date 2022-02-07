@@ -25,6 +25,7 @@ _init() {
 
 	if [ "$#" -eq 0 ]; then
 		${FUNCNAME[1]} --enabled
+		return
 	fi
 
 	if [[ "$1" =~ "--" ]]; then
