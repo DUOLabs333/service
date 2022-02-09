@@ -21,18 +21,21 @@ Loop() {
 }
 
 _init() {
-	export NAME="${@: -1}"
+
+	if [ ! "$#" -eq 0 ]; then
+		export NAME="${@: -1}"
+	fi
 }
 _start() {
 	_init $@
 
-
-	if [ "$#" -eq 0 ]; then
-		${FUNCNAME[0]} --enabled
-	fi
-
 	if [[ "$1" =~ "--" ]]; then
-		for d in $(service list "$1"); do 
+		for d in $(_list "$1"); do 
+			${FUNCNAME[0]} $d
+		done
+		return
+	elif [[ -z "$NAME" ]]; then
+			for d in $(_list ); do 
 			${FUNCNAME[0]} $d
 		done
 		return
@@ -74,12 +77,21 @@ _start() {
 _stop() {
 	_init $@
 
-	if [ "$#" -eq 0 ]; then
-		${FUNCNAME[0]} --enabled
+
+	if [[ "$1" =~ "--" ]]; then
+		for d in $(_list "$1"); do 
+			${FUNCNAME[0]} $d
+		done
+		return
+	elif [[ -z "$NAME" ]]; then
+			for d in $(_list ); do 
+			${FUNCNAME[0]} $d
+		done
+		return
 	fi
 
 	if [[ "$1" =~ "--" ]]; then
-		for d in $(service list "$1"); do 
+		for d in $(_list "$1"); do 
 			${FUNCNAME[0]} $d
 		done
 		return
@@ -116,6 +128,7 @@ _log() {
 _status() {
 	
 	_init $@
+
 	if [ ! -f "$ROOT/$NAME/service" ] && [ ! -f "$ROOT/$NAME/.service" ]; then
 		echo "Service $NAME does not exist"
 		return 
@@ -137,12 +150,13 @@ _status() {
 _disable() {
 	_init $@
 
-	if [ "$#" -eq 0 ]; then
-		${FUNCNAME[0]} --enabled
-	fi
-
 	if [[ "$1" =~ "--" ]]; then
-		for d in $(service list "$1"); do 
+		for d in $(_list "$1"); do 
+			${FUNCNAME[0]} $d
+		done
+		return
+	elif [[ -z "$NAME" ]]; then
+			for d in $(_list ); do 
 			${FUNCNAME[0]} $d
 		done
 		return
@@ -170,12 +184,13 @@ _enable() {
 	_init $@
 
 
-	if [ "$#" -eq 0 ]; then
-		${FUNCNAME[0]} --enabled
-	fi
-
 	if [[ "$1" =~ "--" ]]; then
-		for d in $(service list "$1"); do 
+		for d in $(_list "$1"); do 
+			${FUNCNAME[0]} $d
+		done
+		return
+	elif [[ -z "$NAME" ]]; then
+			for d in $(_list ); do 
 			${FUNCNAME[0]} $d
 		done
 		return
@@ -200,6 +215,11 @@ _enable() {
 
 _list() {
 	_init $@
+
+	if [ "$#" -eq 0 ]; then
+		${FUNCNAME[0]} --enabled
+	fi
+
 	if [ "$1" == "--all" ]; then
 	
 		(cd $ROOT && for d in $(ls -d *); do echo $d; done)
