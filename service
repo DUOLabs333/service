@@ -25,9 +25,6 @@ _init() {
 	if [ ! "$#" -eq 0 ]; then
 		export NAME="${@: -1}"
 	fi
-}
-_start() {
-	_init $@
 
 	if [[ "$1" =~ "--" ]]; then
 		for d in $(_list "$1"); do 
@@ -35,12 +32,16 @@ _start() {
 		done
 		return
 	elif [[ -z "$NAME" ]]; then
-			for d in $(_list ); do 
+		for d in $(_list ); do 
 			${FUNCNAME[0]} $d
 		done
 		return
 	fi
+}
 
+
+_start() {
+	_init $@
 
 	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
@@ -76,26 +77,6 @@ _start() {
 
 _stop() {
 	_init $@
-
-
-	if [[ "$1" =~ "--" ]]; then
-		for d in $(_list "$1"); do 
-			${FUNCNAME[0]} $d
-		done
-		return
-	elif [[ -z "$NAME" ]]; then
-			for d in $(_list ); do 
-			${FUNCNAME[0]} $d
-		done
-		return
-	fi
-
-	if [[ "$1" =~ "--" ]]; then
-		for d in $(_list "$1"); do 
-			${FUNCNAME[0]} $d
-		done
-		return
-	fi
 	
 	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
@@ -150,18 +131,6 @@ _status() {
 _disable() {
 	_init $@
 
-	if [[ "$1" =~ "--" ]]; then
-		for d in $(_list "$1"); do 
-			${FUNCNAME[0]} $d
-		done
-		return
-	elif [[ -z "$NAME" ]]; then
-			for d in $(_list ); do 
-			${FUNCNAME[0]} $d
-		done
-		return
-	fi
-
 	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
 		return 
@@ -183,19 +152,6 @@ _disable() {
 _enable() {
 	_init $@
 
-
-	if [[ "$1" =~ "--" ]]; then
-		for d in $(_list "$1"); do 
-			${FUNCNAME[0]} $d
-		done
-		return
-	elif [[ -z "$NAME" ]]; then
-			for d in $(_list ); do 
-			${FUNCNAME[0]} $d
-		done
-		return
-	fi
-
 	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
 		echo "Service $NAME does not exist"
 		return 
@@ -214,10 +170,9 @@ _enable() {
 }
 
 _list() {
-	_init $@
 
 	if [ "$#" -eq 0 ]; then
-		${FUNCNAME[0]} --enabled
+		_list --enabled
 	fi
 
 	if [ "$1" == "--all" ]; then
@@ -269,7 +224,6 @@ _edit() {
 }
 
 _restart() {
-	_init $@
 
 	_stop "$@"
 	_start "$@"
