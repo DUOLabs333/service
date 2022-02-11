@@ -28,12 +28,12 @@ _init() {
 
 	if [[ "$1" =~ "--" ]]; then
 		for d in $(_list "$1"); do 
-			${FUNCNAME[0]} $d
+			${FUNCNAME[1]} $d
 		done
 		return
 	elif [[ -z "$NAME" ]]; then
 		for d in $(_list ); do 
-			${FUNCNAME[0]} $d
+			${FUNCNAME[1]} $d
 		done
 		return
 	fi
