@@ -234,6 +234,7 @@ _new() {
 	mkdir $ROOT/$NAME
 	mkdir $ROOT/$NAME/data
 	touch $ROOT/$NAME/.service
+	$EDITOR $ROOT/$NAME/.service
 }
 
 if [[ $(type -t _"$1") == "function" ]]; then
