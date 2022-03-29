@@ -14,8 +14,16 @@ You can also:
 * Enable and disable with `enable` and `disable`, respectively.
 * Edit script on the command line with `edit`
 * Restart with `restart`, with the same options you can use for `list`.
+* Make a new service with `init`
 
 If you want to start `service` at boot, put this script in the appropiate area: 
 ```
 service start
 ```
+
+Commands:
+In your `service` script for each service, you can have different commands.
+`Down`: What should run if the script fails or `service stop` is run.
+`Wait`: Prevent the script from finishing early.
+`Loop`: Run command in a loop (with configurable delay between invocations) in the background.
+`Container`: Special support for my `container` program.

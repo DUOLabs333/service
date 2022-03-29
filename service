@@ -20,6 +20,12 @@ Loop() {
 	(while true; do "$1"; sleep $2; done) &
 }
 
+Container(){
+	Down "container stop $1" 
+	container start $1
+	echo "Testing S"
+	Wait
+}
 _init() {
 
 	if [ ! "$#" -eq 0 ]; then
@@ -58,8 +64,9 @@ _start() {
 	export -f Down
 	export -f Wait
 	export -f Loop
+	export -f Container
 	
-	cd data
+	cd data > /dev/null
 	touch $LOGPATH/$NAME.log
 	if [ $(_status $NAME | grep "Disabled") ]; then
 
