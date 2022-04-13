@@ -1,4 +1,4 @@
-This is the repository for `service`, an alternative to systemd, written completely in bash (a benefit of this is that it's completely cross-platform). This is not meant to a complete replacement for systemd, but is meant to be a lightweight alternative to managing services without having to resort to something like Docker. 
+This is the repository for `service`, an alternative to systemd, written completely in Python. This is not meant to a complete replacement for systemd, but is meant to be a lightweight alternative to managing services without having to resort to something like Docker. 
 
 
 To start, move `service` to a location in your PATH. Then, create the folder `~/Services`.
