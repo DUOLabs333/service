@@ -11,12 +11,16 @@ import shutil
 ROOT=os.path.expanduser("~/Services")
 
 arguments=sys.argv[1:]
-FUNCTION=arguments[0]
+try:
+    FUNCTION=arguments[0]
+except IndexError:
+    print("No function specified!")
+    exit()
 arguments=arguments[1:]
 
 #Populate arguments if it is empty
-if arguments==[]:
-    arguments=['--all']
+#if arguments==[]:
+#    arguments=['--all']
 
 NAMES=[]
 FLAGS=arguments
@@ -25,7 +29,7 @@ SHELL=os.getenv('SHELL','bash')
 SHELL_CWD=os.environ.get("PWD")
 
 #Helper functions
-def _list(_names=None,_flags=None):
+def List(_names=None,_flags=None):
     global FLAGS
     if not _flags:
         flags=FLAGS
@@ -283,8 +287,11 @@ for i in range(len(arguments)):
         break
 
 
-NAMES=_list(NAMES)
+NAMES=List(NAMES)
 
+if NAMES==[]:
+    print("No services specified!")
+    exit()
 if not FLAGS:
     FLAGS=[]
 for name in NAMES:
@@ -299,8 +306,11 @@ for name in NAMES:
     for func in [func for func in dir(Service) if callable(getattr(Service, func)) and not func.startswith('__')]:
         exec(f"{func} = service.{func}")
     
-    
-    result=list(flatten([getattr(service,FUNCTION.title())()]))
+    try:
+        result=list(flatten([getattr(service,FUNCTION.title())()]))
+    except AttributeError:
+        print(f"Command {FUNCTION} doesn't exist!")
+        exit()
     print_result(result)
         
 
