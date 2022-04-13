@@ -130,9 +130,7 @@ class Service:
         self.env+=f"; export {env}"
     
     def Container(self,_container):
-        def Stop_Container():
-            Shell(f"container stop {_container}")
-        Down(Stop_Container)
+        Down(f"container stop {_container}")
         Run(f"container start {_container}")
     
     def Down(self,func):
