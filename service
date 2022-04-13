@@ -1,251 +1,304 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
+import subprocess
+import re
+import sys
+import os
+import signal
+import typing
+import tempfile
+import shutil
+import atexit
 
-export ROOT=~/Services
+ROOT=os.path.expanduser("~/Services")
 
-if [[ ! -d /tmp ]]; then
-	export LOGPATH=$TMPDIR
-else
-	export LOGPATH=/tmp
-fi
+arguments=sys.argv[1:]
+FUNCTION=arguments[0]
+arguments=arguments[1:]
 
-Down() {
-	trap "$1" EXIT
-}
+#Populate arguments if it is empty
+if arguments==[]:
+    arguments=['--all']
 
-Wait() {
-	sleep infinity
-}
+NAMES=[]
+FLAGS=arguments
+TEMPDIR=tempfile.gettempdir()
+SHELL=os.getenv('SHELL','bash')
+SHELL_CWD=os.environ.get("PWD")
 
-Loop() {
-	(while true; do "$1"; sleep $2; done) &
-}
+#Helper functions
+def _list(_names=None,_flags=None):
+    global FLAGS
+    if not _flags:
+        flags=FLAGS
+    else:
+        flags=_flags
+    
+    if not _names:
+        names=NAMES
+    else:
+        names=_names
+    
+    AllServices=os.listdir(f"{ROOT}")
+    
+    if "--started" in flags:
+        names+=[_ for _ in AllServices if "Started" in Service(_).Status() ]
+        FLAGS=FLAGS.remove("--started")
+    if "--stopped" in flags:
+        names+=[_ for _ in AllServices if "Stopped" in Service(_).Status() ]
+        FLAGS=FLAGS.remove("--stopped")
+    if "--enabled" in flags:
+        names+=[_ for _ in AllServices if "Enabled" in Service(_).Status() ]
+        FLAGS=FLAGS.remove("--enabled")
+    
+    if "--disabled" in flags:
+        names+=[_ for _ in AllServices if "Disabled" in Service(_).Status() ]
+        FLAGS=FLAGS.remove("--disabled")
 
-Container(){
-	Down "container stop $1" 
-	container start $1
-	echo "Testing S"
-	Wait
-}
-_init() {
+    if "--all" in flags:
+        names+=AllServices
+        FLAGS=FLAGS.remove("--all")
+    return names
+    
+def flatten(items):
+    """Yield items from any nested iterable; see Reference."""
+    for x in items:
+        if isinstance(x, typing.Iterable) and not isinstance(x, (str, bytes)):
+            for sub_x in flatten(x):
+                yield sub_x
+        else:
+            yield x
 
-	if [ ! "$#" -eq 0 ]; then
-		export NAME="${@: -1}"
-	fi
+def print_result(result):
+    for element in result:
+        if element is None:
+            print(end='')
+        else:
+            print(element)
 
-	if [[ "$1" =~ "--" ]]; then
-		for d in $(_list "$1"); do 
-			${FUNCNAME[1]} $d
-		done
-		return
-	elif [[ -z "$NAME" ]]; then
-		for d in $(_list ); do 
-			${FUNCNAME[1]} $d
-		done
-		return
-	fi
-}
+def split_by_char(string,char=':'):
+    PATTERN = re.compile(rf'''((?:[^\{char}"']|"[^"]*"|'[^']*')+)''')
+    return [_ for _ in list(PATTERN.split(string)) if _ not in ['', char]]
+    
+def Shell(command,block=True):
+    if block:
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True,universal_newlines=True)
+        return process.communicate()[0]
+    else:
+        process = subprocess.Popen(command, shell=True,stderr=subprocess.STDOUT,universal_newlines=True)
+
+class ServiceDoesNotExist(Exception):
+    pass
+    
+class Service:
+    def __init__(self,_name,_flags=None,_function=None,_env=None):
+        self.name=_name
+        if not _flags:
+            self.flags=FLAGS
+        else:
+            self.flags=_flags
+           
+        if not _function:
+            self.function=FUNCTION
+        else:
+            self.function=_function
+        
+        if not _env:
+            self.env=f"export SERVICE_NAME={self.name}"
+        else:
+            self.env=_env
+
+        if self.function not in ["init"]:
+            if not os.path.isdir(f"{ROOT}/{self.name}"):
+                 raise ServiceDoesNotExist()
+                 return
+            os.chdir(f"{ROOT}/{self.name}")
+    
+    #Functions
+    def Run(self,command="",block=True):
+        signal.signal(signal.SIGTERM,Exit)
+        Shell(f"""{self.env}; {command} > {TEMPDIR}/service_{self.name}.log 2>&1""",block=block)
+    
+    def GetProc(self,process):
+        #Find main process
+        if process=="main":
+            command=f"lsof -Fp /tmp/service_{self.name}.lock | cut -c 2-"
+        #Find processes running under main Start script
+        elif process=="auxiliary":
+            command=f"ps auwwe | grep SERVICE_NAME={self.name} |  awk '{{print $2}}'"
+        return list(map(int,Shell(command).splitlines()))
+
+    
+    def Env(self,env):
+        self.env+=f"; export {env}"
+    
+    def Container(self,_container):
+        def Stop_Container():
+            Shell(f"container stop {_container}")
+        Down(Stop_Container)
+        Run(f"container start {_container}")
+    
+    def Down(self,func):
+        #Yes, this decorator stuff is absolutely neccessary, anything else will not work
+        global Exit
+        def decorator_Exit(exit_func):
+            def new_Exit(*args, **kwargs):
+                exit_func(*args, **kwargs)
+                func()
+            return new_Exit
+        Exit=decorator_Exit(Exit)
+    
+    def Loop(command,delay=60):
+        Run(f'(while true; do "{command}"; sleep {delay}; done)')
+
+    def Wait(self,mode="Run"):
+        if mode=="Run":
+            Run("sleep infinity")
+        elif mode=="Shell":
+            Shell("sleep infinity")
+    
+    def Exit(self,signum,frame):
+        pass
+        
+    #Commands      
+    def Start(self):
+        
+        if "Started" in self.Status():
+            return f"Service {self.name} is already started"
+        
+        if os.path.exists("data"):
+            os.chdir("data")
+        
+        if "Enabled" in self.Status():
+            service_file="service.py"
+        else:
+            service_file=".service.py"
+        
+        #Fork process, so it can run in the background
+        pid=os.fork()
+        
+        #If the original function, return to move on to the next one
+        if pid!=0:
+            return
+        
+        #Open a file so I can find it with lsof later
+        lock_file=open(f"{TEMPDIR}/service_{self.name}.lock","w+")
+        
+        #Run *service.py
+        with open(f"{ROOT}/{self.name}/{service_file}") as f:
+            code=f.read()
+        exec(code,globals(),locals())
+        
+        #Don't exit script yet. Use 'Shell' mode so it won't be killed with Stop
+        Wait(mode="Shell")
+       
+    def Stop(self):
+        if "Stopped" in self.Status():
+            return f"Service {self.name} is already stopped"
+            
+        #Get PID of main Start process
+        for pid in self.GetProc("main"):
+            os.kill(pid,signal.SIGTERM)
+
+        try:
+            for pid in self.GetProc("main"):
+                os.kill(pid,signal.SIGTERM)
+        except:
+            pass
+        
+        #Kill all files under service
+        for pid in self.GetProc("auxiliary"):
+            try:
+                os.kill(pid,signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        
+        try:
+           os.remove(f"{TEMPDIR}/service_{self.name}.log")
+        except FileNotFoundError:
+            pass
+        
+        try:
+           os.remove(f"{TEMPDIR}/service_{self.name}.lock")
+        except FileNotFoundError:
+            pass
 
 
-_start() {
-	_init $@
+    def Restart(self):
+        return [self.Stop(),self.Start()]
+    
+    
+    def List(self):
+        return self.name
 
-	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
-		echo "Service $NAME does not exist"
-		return 
-	fi
+    def Init(self):
+       
+        os.makedirs(f"{ROOT}/{self.name}",exist_ok=True)
+        os.chdir(f"{ROOT}/{self.name}")
+        os.makedirs("data",exist_ok=True)
+        with open(f".service.py",'a'):
+            pass
+        
+        if '--no-edit' not in self.flags:
+            self.Edit()
 
-	cd $ROOT/$NAME
+    def Edit(self):
+        if "Enabled" in self.Status():
+            os.system(f"$EDITOR {ROOT}/{self.name}/service.py")
+        else:
+            os.system(f"$EDITOR {ROOT}/{self.name}/.service.py")
 
-	if [ $(_status $NAME | grep "Started") ]; then
-		echo "Service $NAME has already been started"
-		return
-	fi
-	
-	export -f Down
-	export -f Wait
-	export -f Loop
-	export -f Container
-	
-	cd data > /dev/null
-	touch $LOGPATH/$NAME.log
-	if [ $(_status $NAME | grep "Disabled") ]; then
+    def Status(self):
+        status=[]
+        if os.path.isfile(f"{TEMPDIR}/service_{self.name}.log"):
+            status+=["Started"]
+        else:
+            status+=["Stopped"]
+        
+        if os.path.exists(f"{ROOT}/{self.name}/service.py"):
+            status+=["Enabled"]
+        else:
+            status+=["Disabled"]
+        return status
 
-		setsid -f bash -c 'trap "rm -f $LOGPATH/$NAME.log; kill -- -$$" EXIT; bash $ROOT/$NAME/.service' > $LOGPATH/$NAME.log 2>&1 &
+    def Log(self):
+        os.system(f"less +G {TEMPDIR}/service_{self.name}.log")
+    
+    def Delete(self):
+        self.Stop()
+        shutil.rmtree(self.name)
 
-		sleep 5
 
-	else
+#Initializing some important things
+#Flags go before the actual service names
+for i in range(len(arguments)):
+    if not arguments[i].startswith("--"):
+        FLAGS=arguments[:i]
+        NAMES=arguments[i:]
+        break
 
-		setsid -f bash -c 'trap "rm -f $LOGPATH/$NAME.log; kill -- -$$" EXIT; bash $ROOT/$NAME/service' > $LOGPATH/$NAME.log 2>&1 &
 
-		sleep 5
-	fi
-}
+NAMES=_list(NAMES)
 
-_stop() {
-	_init $@
-	
-	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
-		echo "Service $NAME does not exist"
-		return 
-	fi
+if not FLAGS:
+    FLAGS=[]
+for name in NAMES:
+    
+    BASE="void"
+    UNIONOPTS="diff=RW"
+    
+    try:
+        service=Service(name,FLAGS)
+    except ServiceDoesNotExist:
+        print(f"Service {name} does not exist")
+        continue
+    
+    #Export all service methods to be used in *service.py
+    for func in [func for func in dir(Service) if callable(getattr(Service, func)) and not func.startswith('__')]:
+        exec(f"{func} = service.{func}")
+    
+    
+    result=list(flatten([getattr(service,FUNCTION.title())()]))
+    print_result(result)
+        
 
-	
-	PID=$(pgrep -f "^bash $ROOT/$NAME/service$")
-
-	if [ -z "${PID}" ]; then
-		PID=$(pgrep -f "^bash $ROOT/$NAME/.service$")
-
-		if [ -z "${PID}" ]; then
-			echo "Service $NAME is not running"
-			return 
-		fi
-	fi
-	for proc in $PID; do
-		kill $proc  > /dev/null 2>&1
-	done
-	sleep 5
-
-}
-
-_log() {
-	_init $@
-	EDITOR=$EDITOR less +G +F -f $LOGPATH/$NAME.log
-}
-
-_status() {
-	
-	_init $@
-
-	if [ ! -f "$ROOT/$NAME/service" ] && [ ! -f "$ROOT/$NAME/.service" ]; then
-		echo "Service $NAME does not exist"
-		return 
-	fi
-
-	if [ -f "$LOGPATH/$NAME.log" ]; then
-    	echo "Started"
-	else 
-    	echo "Stopped"
-    fi
-
-    if [ -f "$ROOT/$NAME/service" ]; then
-    	echo "Enabled"
-	else 
-    	echo "Disabled"
-    fi
-}
-
-_disable() {
-	_init $@
-
-	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
-		echo "Service $NAME does not exist"
-		return 
-	fi
-
-	if [[ $(_status $NAME | grep "Disabled") != "" ]]; then
-		echo "Service $NAME is already disabled"
-		return 
-	fi
-
-	
-	mv $ROOT/$NAME/service $ROOT/$NAME/.service
-
-	if [ "$1" == "--now" ]; then
-		_stop $NAME
-	fi
-}
-
-_enable() {
-	_init $@
-
-	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
-		echo "Service $NAME does not exist"
-		return 
-	fi
-
-	if [ $(_status $NAME | grep "Enabled") ]; then
-		echo "Service $NAME is already enabled"
-		return 
-	fi
-
-	mv $ROOT/$NAME/.service $ROOT/$NAME/service
-
-	if [ "$1" == "--now" ]; then
-		service start $NAME
-	fi
-}
-
-_list() {
-
-	if [ "$#" -eq 0 ]; then
-		_list --enabled
-	fi
-
-	if [ "$1" == "--all" ]; then
-	
-		(cd $ROOT && for d in $(ls -d *); do echo $d; done)
-		
-	elif [ "$1" == "--enabled" ]; then
-		cd $ROOT
-		for d in $(ls -d *); do
-			if [ $(_status $d | grep "Enabled") ]; then
-				echo $d
-			fi
-		done
-	elif [ "$1" == "--disabled" ]; then
-		cd $ROOT
-		for d in $(ls -d *); do
-			if [ $(_status $d | grep "Disabled") ]; then
-				echo $d
-			fi
-		done
-	elif [ "$1" == "--started" ]; then
-		for d in $(_list --all); do
-			if [ -f $LOGPATH/$d.log ]; then
-				echo $d
-			fi
-		done
-	elif [ "$1" == "--stopped" ]; then
-		for d in $(_list --all); do
-			if [ ! -f $LOGPATH/$d.log ]; then
-				echo $d
-			fi
-		done
-	fi
-}
-
-_edit() {
-	_init $@
-	if [[ $(_status $NAME | grep "does not exist") != "" ]]; then
-		echo "Service $NAME does not exist"
-		return 
-	fi
-
-	if [ $(_status $NAME | grep "Disabled") ]; then
-
-		$EDITOR $ROOT/$NAME/.service
-	else
-		$EDITOR $ROOT/$NAME/service
-	fi
-}
-
-_restart() {
-
-	_stop "$@"
-	_start "$@"
-}
-
-_new() {
-	_init $@
-	mkdir $ROOT/$NAME
-	mkdir $ROOT/$NAME/data
-	touch $ROOT/$NAME/.service
-	$EDITOR $ROOT/$NAME/.service
-}
-
-if [[ $(type -t _"$1") == "function" ]]; then
-	 _"$1" "${@:2}"
-else
-	echo "Command $1 doesn't exist"
-fi
+    
