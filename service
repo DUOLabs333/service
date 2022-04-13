@@ -259,6 +259,18 @@ class Service:
         else:
             status+=["Disabled"]
         return status
+    
+    def Enable(self):
+        if "Enabled" in self.Status():
+            return [f"{self.name} is already enabled"]
+        else:
+            os.rename(f"{ROOT}/{self.name}/.service.py",f"{ROOT}/{self.name}/service.py")
+            
+    def Disable(self):
+        if "Disabled" in self.Status():
+            return [f"{self.name} is already disabled"]
+        else:
+            os.rename(f"{ROOT}/{self.name}/service.py",f"{ROOT}/{self.name}/.service.py")
 
     def Log(self):
         os.system(f"less +G {TEMPDIR}/service_{self.name}.log")
