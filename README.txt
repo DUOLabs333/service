@@ -24,7 +24,7 @@ service start --enabled
 Commands:
 In your service script for each service, you can have different commands.
 
-Down(command): When 'service stop $NAME' is run, runs command. You can run this command multiple times, and when 'service stop $NAME' is run, it will start from the first Down command onwards
+Down(command): When 'service stop $NAME' is run, runs command. You can run this command multiple times, and when 'service stop $NAME' is run, it will start from the first Down command onwards. command can either be a bash string or Python function
 
 Loop(command,delay): Run command in a loop with delay seconds between each invocation in the background.
 

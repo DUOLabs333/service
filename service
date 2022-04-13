@@ -7,7 +7,6 @@ import signal
 import typing
 import tempfile
 import shutil
-import atexit
 
 ROOT=os.path.expanduser("~/Services")
 
@@ -80,11 +79,8 @@ def split_by_char(string,char=':'):
     return [_ for _ in list(PATTERN.split(string)) if _ not in ['', char]]
     
 def Shell(command,block=True):
-    if block:
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True,universal_newlines=True)
-        return process.communicate()[0]
-    else:
-        process = subprocess.Popen(command, shell=True,stderr=subprocess.STDOUT,universal_newlines=True)
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True,universal_newlines=True)
+    return process.communicate()[0]
 
 class ServiceDoesNotExist(Exception):
     pass
@@ -113,15 +109,17 @@ class Service:
                  return
             os.chdir(f"{ROOT}/{self.name}")
     
-    #Functions
-    def Run(self,command="",block=True):
+    #Functions to be used in *service.py
+    def Run(self,command=""):
         signal.signal(signal.SIGTERM,Exit)
-        Shell(f"""{self.env}; {command} > {TEMPDIR}/service_{self.name}.log 2>&1""",block=block)
+        Shell(f"""{self.env}; {command} > {TEMPDIR}/service_{self.name}.log 2>&1""")
     
-    def GetProc(self,process):
+    def GetProc(self,process="auxiliary"):
+        
         #Find main process
         if process=="main":
-            command=f"lsof -Fp /tmp/service_{self.name}.lock | cut -c 2-"
+            command=f"lsof -Fp -w /tmp/service_{self.name}.lock | cut -c 2-"
+            
         #Find processes running under main Start script
         elif process=="auxiliary":
             command=f"ps auwwe | grep SERVICE_NAME={self.name} |  awk '{{print $2}}'"
@@ -140,10 +138,16 @@ class Service:
     def Down(self,func):
         #Yes, this decorator stuff is absolutely neccessary, anything else will not work
         global Exit
+        if isinstance(func,str):
+            #So func won't be overwritten
+            func_str=func
+            def func():
+                Shell(func_str)
         def decorator_Exit(exit_func):
             def new_Exit(*args, **kwargs):
-                exit_func(*args, **kwargs)
+                #So exit() is the last function run
                 func()
+                exit_func(*args, **kwargs)
             return new_Exit
         Exit=decorator_Exit(Exit)
     
@@ -157,7 +161,7 @@ class Service:
             Shell("sleep infinity")
     
     def Exit(self,signum,frame):
-        pass
+        exit()
         
     #Commands      
     def Start(self):
@@ -176,20 +180,19 @@ class Service:
         #Fork process, so it can run in the background
         pid=os.fork()
         
-        #If the original function, return to move on to the next one
-        if pid!=0:
-            return
-        
-        #Open a file so I can find it with lsof later
-        lock_file=open(f"{TEMPDIR}/service_{self.name}.lock","w+")
-        
-        #Run *service.py
-        with open(f"{ROOT}/{self.name}/{service_file}") as f:
-            code=f.read()
-        exec(code,globals(),locals())
-        
-        #Don't exit script yet. Use 'Shell' mode so it won't be killed with Stop
-        Wait(mode="Shell")
+        #If child, run code, then exit 
+        if pid==0:
+            #Open a lock file so I can find it with lsof later
+            lock_file=open(f"{TEMPDIR}/service_{self.name}.lock","w+")
+            
+            #Run *service.py
+            with open(f"{ROOT}/{self.name}/{service_file}") as f:
+                code=f.read()
+            exec(code,globals(),locals())
+            
+            #Don't exit script yet. Use 'Shell' mode so it won't be killed with Stop
+            Wait(mode="Shell")
+            exit()
        
     def Stop(self):
         if "Stopped" in self.Status():
@@ -198,12 +201,6 @@ class Service:
         #Get PID of main Start process
         for pid in self.GetProc("main"):
             os.kill(pid,signal.SIGTERM)
-
-        try:
-            for pid in self.GetProc("main"):
-                os.kill(pid,signal.SIGTERM)
-        except:
-            pass
         
         #Kill all files under service
         for pid in self.GetProc("auxiliary"):
@@ -211,7 +208,7 @@ class Service:
                 os.kill(pid,signal.SIGKILL)
             except ProcessLookupError:
                 pass
-        
+       
         try:
            os.remove(f"{TEMPDIR}/service_{self.name}.log")
         except FileNotFoundError:
@@ -221,7 +218,6 @@ class Service:
            os.remove(f"{TEMPDIR}/service_{self.name}.lock")
         except FileNotFoundError:
             pass
-
 
     def Restart(self):
         return [self.Stop(),self.Start()]
@@ -294,10 +290,7 @@ NAMES=_list(NAMES)
 if not FLAGS:
     FLAGS=[]
 for name in NAMES:
-    
-    BASE="void"
-    UNIONOPTS="diff=RW"
-    
+     
     try:
         service=Service(name,FLAGS)
     except ServiceDoesNotExist:
