@@ -203,11 +203,19 @@ class Service:
         #Get PID of main Start process
         for pid in self.GetProc("main"):
             os.kill(pid,signal.SIGTERM)
-        
+            try:
+                os.waitpid(pid,0)
+            except:
+                pass
         #Kill all files under service
         for pid in self.GetProc("auxiliary"):
             try:
                 os.kill(pid,signal.SIGKILL)
+                try:
+                    os.waitpid(pid,0)
+                except:
+                    pass
+
             except ProcessLookupError:
                 pass
        
