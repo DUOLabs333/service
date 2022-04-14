@@ -8,7 +8,7 @@ import typing
 import tempfile
 import shutil
 
-ROOT=os.path.expanduser("~/Services")
+ROOT=os.path.expanduser(os.getenv("SERVICE_ROOT","~/Services"))
 
 arguments=sys.argv[1:]
 try:
@@ -41,7 +41,7 @@ def List(_names=None,_flags=None):
     else:
         names=_names
     
-    AllServices=os.listdir(f"{ROOT}")
+    AllServices=sorted(os.listdir(f"{ROOT}"))
     
     if "--started" in flags:
         names+=[_ for _ in AllServices if "Started" in Service(_).Status() ]
