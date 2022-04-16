@@ -115,7 +115,7 @@ class Service:
     
     #Functions to be used in *service.py
     def Run(self,command=""):
-        signal.signal(signal.SIGTERM,Exit)
+        signal.signal(signal.SIGTERM,self.Exit)
         Shell(f"""{self.env}; {command} > {TEMPDIR}/service_{self.name}.log 2>&1""")
     
     def GetProc(self,process="auxiliary"):
@@ -139,7 +139,7 @@ class Service:
     
     def Down(self,func):
         #Yes, this decorator stuff is absolutely neccessary, anything else will not work
-        global Exit
+    
         if isinstance(func,str):
             #So func won't be overwritten
             func_str=func
@@ -151,7 +151,7 @@ class Service:
                 func()
                 exit_func(*args, **kwargs)
             return new_Exit
-        Exit=decorator_Exit(Exit)
+        self.Exit=decorator_Exit(self.Exit)
     
     def Loop(command,delay=60):
         Run(f'(while true; do "{command}"; sleep {delay}; done)')
