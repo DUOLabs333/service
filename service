@@ -134,8 +134,8 @@ class Service:
         self.env+=f"; export {env}"
     
     def Container(self,_container):
-        Down(f"container stop {_container}")
-        Run(f"container start {_container}")
+        self.Down(f"container stop {_container}")
+        self.Run(f"container start {_container}")
     
     def Down(self,func):
         #Yes, this decorator stuff is absolutely neccessary, anything else will not work
@@ -154,11 +154,11 @@ class Service:
         self.Exit=decorator_Exit(self.Exit)
     
     def Loop(command,delay=60):
-        Run(f'(while true; do "{command}"; sleep {delay}; done)')
+        self.Run(f'(while true; do "{command}"; sleep {delay}; done)')
 
     def Wait(self,mode="Run"):
         if mode=="Run":
-            Run("sleep infinity")
+            self.Run("sleep infinity")
         elif mode=="Shell":
             Shell("sleep infinity")
     
@@ -193,7 +193,7 @@ class Service:
             exec(code,globals(),locals())
             
             #Don't exit script yet. Use 'Shell' mode so it won't be killed with Stop
-            Wait(mode="Shell")
+            self.Wait(mode="Shell")
             exit()
        
     def Stop(self):
