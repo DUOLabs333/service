@@ -134,7 +134,12 @@ class Service:
     def Env(self,env):
         self.env+=f"; export {env}"
     
-    def Container(self,_container):
+    def Container(self,_container=None):
+        #Convience --- if conainer name is not specified, it will assume that the container is the same name as the service
+        
+        if not _container:
+            _container=self.name
+            
         self.Down(f"container stop {_container}")
         self.Run(f"container start {_container}")
     
