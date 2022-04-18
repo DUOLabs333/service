@@ -7,6 +7,7 @@ import signal
 import typing
 import tempfile
 import shutil
+import threading 
 
 ROOT=os.path.expanduser(os.getenv("SERVICE_ROOT","~/Services"))
 
@@ -153,8 +154,18 @@ class Service:
             return new_Exit
         self.Exit=decorator_Exit(self.Exit)
     
-    def Loop(command,delay=60):
-        self.Run(f'(while true; do "{command}"; sleep {delay}; done)')
+    def Loop(self,command,delay=60):
+        if isinstance(command,str):
+            def func():
+                while True:
+                    Run(command)
+                    time.sleep(delay)
+        else:
+            def func():
+                while True:  
+                    command()
+                    time.sleep(delay)
+        threading.Thread(target=func).start()
 
     def Wait(self,mode="Run"):
         if mode=="Run":
