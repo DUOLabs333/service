@@ -7,7 +7,8 @@ import signal
 import typing
 import tempfile
 import shutil
-import threading 
+import threading
+import time
 
 ROOT=os.path.expanduser(os.getenv("SERVICE_ROOT","~/Services"))
 
@@ -117,7 +118,7 @@ class Service:
     #Functions to be used in *service.py
     def Run(self,command=""):
         signal.signal(signal.SIGTERM,self.Exit)
-        Shell(f"""{self.env}; {command} > {TEMPDIR}/service_{self.name}.log 2>&1""")
+        Shell(f"""{self.env}; {command} >> {TEMPDIR}/service_{self.name}.log 2>&1""")
     
     def GetProc(self,process="auxiliary"):
         
@@ -244,7 +245,7 @@ class Service:
            os.remove(f"{TEMPDIR}/service_{self.name}.lock")
         except FileNotFoundError:
             pass
-
+        
     def Restart(self):
         return [self.Stop(),self.Start()]
     
