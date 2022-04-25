@@ -141,7 +141,7 @@ class Service:
         if not _container:
             _container=self.name
             
-        self.Down(f"container stop {_container}")
+        self.Down(f"container stop {_container}; sleep 1")
         self.Run(f"container start {_container}")
     
     def Down(self,func):
