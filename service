@@ -173,11 +173,8 @@ class Service:
                     time.sleep(delay)
         threading.Thread(target=func).start()
 
-    def Wait(self,mode="Run"):
-        if mode=="Run":
-            self.Run("sleep infinity")
-        elif mode=="Shell":
-            Shell("sleep infinity")
+    def Wait(self,delay="infinity"):
+        Shell(f"sleep {delay}")
     
     def Exit(self,signum,frame):
         exit()
@@ -210,7 +207,7 @@ class Service:
             exec(code,globals(),locals())
             
             #Don't exit script yet. Use 'Shell' mode so it won't be killed with Stop
-            self.Wait(mode="Shell")
+            self.Wait()
             exit()
        
     def Stop(self):
@@ -288,12 +285,19 @@ class Service:
             return [f"{self.name} is already enabled"]
         else:
             os.rename(f"{ROOT}/{self.name}/.service.py",f"{ROOT}/{self.name}/service.py")
+        
+        if '--now' in self.flags:
+            return [self.Start()]
+
             
     def Disable(self):
         if "Disabled" in self.Status():
             return [f"{self.name} is already disabled"]
         else:
             os.rename(f"{ROOT}/{self.name}/service.py",f"{ROOT}/{self.name}/.service.py")
+        
+        if '--now' in self.flags:
+            return [self.Stop()]
 
     def Log(self):
         os.system(f"less +G {TEMPDIR}/service_{self.name}.log")
