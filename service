@@ -306,6 +306,9 @@ class Service:
     def Delete(self):
         self.Stop()
         shutil.rmtree(self.name)
+    
+    def Watch(self):
+        Shell(f"tail -f {TEMPDIR}/service_{self.name}.log")
 
 
 #Initializing some important things
