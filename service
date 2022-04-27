@@ -144,6 +144,7 @@ class Service:
             
         self.Down(f"container stop {_container}; sleep 1")
         self.Run(f"container start {_container}")
+        Shell(f"tail -f -n +1 {TEMPDIR}/container_{_container}.log >> {TEMPDIR}/service_{self.name}.log")
     
     def Down(self,func):
         #Yes, this decorator stuff is absolutely neccessary, anything else will not work
