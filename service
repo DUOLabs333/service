@@ -226,7 +226,7 @@ class Service:
         #Kill all files under service
         for pid in self.GetProc("auxiliary"):
             try:
-                os.kill(pid,signal.SIGKILL)
+                os.kill(pid,signal.SIGTERM)
                 try:
                     os.waitpid(pid,0)
                 except:
