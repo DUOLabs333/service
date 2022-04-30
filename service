@@ -118,7 +118,7 @@ class Service:
     #Functions to be used in *service.py
     def Run(self,command=""):
         signal.signal(signal.SIGTERM,self.Exit)
-        Shell(f"echo Command: {command} >> {TEMPDIR}/service_{self.name}.log")
+        Shell(f"echo 'Command: {command}' >> {TEMPDIR}/service_{self.name}.log")
         Shell(f"""{self.env}; {command} >> {TEMPDIR}/service_{self.name}.log 2>&1""")
     
     def GetProc(self,process="auxiliary"):
