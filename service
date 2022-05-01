@@ -84,9 +84,11 @@ def split_by_char(string,char=':'):
     PATTERN = re.compile(rf'''((?:[^\{char}"']|"[^"]*"|'[^']*')+)''')
     return [_ for _ in list(PATTERN.split(string)) if _ not in ['', char]]
     
-def Shell(command,block=True):
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True,universal_newlines=True)
-    return process.communicate()[0]
+def Shell(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=False):
+    process = subprocess.run(command, stdout=stdout, stderr=stderr,universal_newlines=True,shell=shell)
+    if stdout==subprocess.PIPE:
+        return process.stdout
+
 
 class ServiceDoesNotExist(Exception):
     pass
@@ -118,19 +120,24 @@ class Service:
     #Functions to be used in *service.py
     def Run(self,command=""):
         signal.signal(signal.SIGTERM,self.Exit)
-        Shell(f"echo 'Command: {command}' >> {TEMPDIR}/service_{self.name}.log")
-        Shell(f"""{self.env}; {command} >> {TEMPDIR}/service_{self.name}.log 2>&1""")
+        with open(f"{TEMPDIR}/service_{self.name}.log","a+") as f:
+            f.write(f"Command: {command}\n")
+            f.flush()
+            Shell(f"{self.env}; {command}",stdout=f,shell=True)
     
-    def GetProc(self,process="auxiliary"):
+    def Ps(self,process="auxiliary"):
         
         #Find main process
         if process=="main":
-            command=f"lsof -Fp -w /tmp/service_{self.name}.lock | cut -c 2-"
+            processes=[_[1:] for _ in Shell(["lsof","-Fp","-w",f"{TEMPDIR}/service_{self.name}.lock"]).splitlines()]
             
         #Find processes running under main Start script
         elif process=="auxiliary":
-            command=f"ps auwwe | grep SERVICE_NAME={self.name} |  awk '{{print $2}}'"
-        return list(map(int,Shell(command).splitlines()))
+            processes=Shell(["ps","auwwe"]).splitlines()
+            processes=[_.split()[1] for _ in processes if f"SERVICE_NAME={self.name}" in _]
+            
+        
+        return list(map(int,processes))
 
     
     def Env(self,env):
@@ -144,7 +151,11 @@ class Service:
             
         self.Down(f"container stop {_container}; sleep 1")
         self.Run(f"container start {_container}")
-        os.system(f"sleep 2;tail -f -n +1 {TEMPDIR}/container_{_container}.log >> {TEMPDIR}/service_{self.name}.log")
+        
+        #Wait 2 seconds before beginning
+        time.sleep(2)
+        with open(f"{TEMPDIR}/service_{self.name}.log","a+") as f:
+            Shell(["tail","-f","-n","+1",f"{TEMPDIR}/container_{_container}.log"],stdout=f)
     
     def Down(self,func):
         #Yes, this decorator stuff is absolutely neccessary, anything else will not work
@@ -153,7 +164,7 @@ class Service:
             #So func won't be overwritten
             func_str=func
             def func():
-                Shell(func_str)
+                Shell(func_str,shell=True)
         def decorator_Exit(exit_func):
             def new_Exit(*args, **kwargs):
                 #So exit() is the last function run
@@ -175,8 +186,11 @@ class Service:
                     time.sleep(delay)
         threading.Thread(target=func).start()
 
-    def Wait(self,delay="infinity"):
-        Shell(f"sleep {delay}")
+    def Wait(self,delay=None):
+        if not delay:
+            signal.pause()
+        else:
+            time.sleep(int(delay))
     
     def Exit(self,signum,frame):
         exit()
@@ -208,7 +222,7 @@ class Service:
                 code=f.read()
             exec(code,globals(),locals())
             
-            #Don't exit script yet. Use 'Shell' mode so it won't be killed with Stop
+            #Don't exit script yet.
             self.Wait()
             exit()
        
@@ -217,14 +231,14 @@ class Service:
             return f"Service {self.name} is already stopped"
             
         #Get PID of main Start process
-        for pid in self.GetProc("main"):
+        for pid in self.Ps("main"):
             os.kill(pid,signal.SIGTERM)
             try:
                 os.waitpid(pid,0)
             except:
                 pass
         #Kill all files under service
-        for pid in self.GetProc("auxiliary"):
+        for pid in self.Ps("auxiliary"):
             try:
                 os.kill(pid,signal.SIGTERM)
                 try:
@@ -265,9 +279,9 @@ class Service:
 
     def Edit(self):
         if "Enabled" in self.Status():
-            os.system(f"$EDITOR {ROOT}/{self.name}/service.py")
+            Shell([os.getenv("EDITOR","vi"),f"{ROOT}/{self.name}/service.py"],stdout=None)
         else:
-            os.system(f"$EDITOR {ROOT}/{self.name}/.service.py")
+            Shell([os.getenv("EDITOR","vi"),f"{ROOT}/{self.name}/.service.py"],stdout=None)
 
     def Status(self):
         status=[]
@@ -302,14 +316,14 @@ class Service:
             return [self.Stop()]
 
     def Log(self):
-        os.system(f"less +G {TEMPDIR}/service_{self.name}.log")
+        Shell(["less","+G",f"{TEMPDIR}/service_{self.name}.log"],stdout=None)
     
     def Delete(self):
         self.Stop()
         shutil.rmtree(self.name)
     
     def Watch(self):
-        os.system(f"tail -f {TEMPDIR}/service_{self.name}.log")
+        Shell(["tail","-f",f"{TEMPDIR}/service_{self.name}.log"],stdout=None)
 
 
 #Initializing some important things
