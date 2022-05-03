@@ -84,10 +84,10 @@ def split_by_char(string,char=':'):
     PATTERN = re.compile(rf'''((?:[^\{char}"']|"[^"]*"|'[^']*')+)''')
     return [_ for _ in list(PATTERN.split(string)) if _ not in ['', char]]
     
-def Shell(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=False):
-    process = subprocess.run(command, stdout=stdout, stderr=stderr,universal_newlines=True,shell=shell)
-    if stdout==subprocess.PIPE:
-        return process.stdout
+def Shell(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=False,block=True):
+    process = subprocess.Popen(command, stdout=stdout, stderr=stderr,universal_newlines=True,shell=shell)
+    if block:
+        return process.communicate()[0]
 
 
 class ServiceDoesNotExist(Exception):
@@ -155,7 +155,7 @@ class Service:
         #Wait 2 seconds before beginning
         time.sleep(2)
         with open(f"{TEMPDIR}/service_{self.name}.log","a+") as f:
-            Shell(["tail","-f","-n","+1",f"{TEMPDIR}/container_{_container}.log"],stdout=f)
+            Shell(["tail","-f","-n","+1",f"{TEMPDIR}/container_{_container}.log"],stdout=f,block=False)
     
     def Down(self,func):
         #Yes, this decorator stuff is absolutely neccessary, anything else will not work
