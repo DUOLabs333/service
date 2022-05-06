@@ -4,7 +4,7 @@ import os
 import signal
 import threading
 
-< include "~/Repos/duolabs_utils/utils.pyx" >
+< include utils.pyx >
 
 CLASS_NAME="Service"
 ROOT=utils.get_root_directory(CLASS_NAME)
