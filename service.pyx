@@ -7,18 +7,19 @@ import threading
 < include utils.pyx >
 
 import utils
-CLASS_NAME="Service"
-utils.ROOT=utils.get_root_directory(CLASS_NAME)
-ROOT=utils.ROOT
-utils.NAMES,utils.FLAGS,utils.FUNCTION=utils.extract_arguments()
 
-NAMES=utils.NAMES
-FLAGS=utils.FLAGS
-TEMPDIR=utils.TEMPDIR
+CLASS_NAME="Service"
+utils.ROOT=ROOT=utils.get_root_directory(CLASS_NAME)
+utils.TEMPDIR=TEMPDIR=utils.get_tempdir()
+
+NAMES,FLAGS,FUNCTION=utils.extract_arguments()
+
+utils.NAMES=NAMES
+utils.FLAGS=FLAGS
+utils.ROOT=ROOT
 
 SHELL=os.getenv('SHELL','bash')
 SHELL_CWD=os.environ.get("PWD")
-
 
 def list_services(*args, **kwargs):
     return utils.list_items_in_root(*args, FLAGS,CLASS_NAME,**kwargs)    
@@ -203,6 +204,7 @@ class Service:
         self.Class.watch()
 
 
+exec(f"utils.{CLASS_NAME}={CLASS_NAME}")
 NAMES=list_services(NAMES)
 for name in NAMES: 
     try:
@@ -213,7 +215,7 @@ for name in NAMES:
     
     utils.export_methods_globally(CLASS_NAME.lower(),globals())
     
-    result=utils.execute_class_method(eval(f"{CLASS_NAME.lower()}"),utils.FUNCTION)
+    result=utils.execute_class_method(eval(f"{CLASS_NAME.lower()}"),FUNCTION)
     print_result(result)
         
 
