@@ -6,11 +6,14 @@ import threading
 
 < include utils.pyx >
 
+import utils
 CLASS_NAME="Service"
-ROOT=utils.get_root_directory(CLASS_NAME)
+utils.ROOT=utils.get_root_directory(CLASS_NAME)
+ROOT=utils.ROOT
+utils.NAMES,utils.FLAGS,utils.FUNCTION=utils.extract_arguments()
 
-NAMES,FLAGS,FUNCTION=utils.extract_arguments()
-
+NAMES=utils.NAMES
+FLAGS=utils.FLAGS
 TEMPDIR=utils.TEMPDIR
 
 SHELL=os.getenv('SHELL','bash')
@@ -208,9 +211,9 @@ for name in NAMES:
         print(f"Service {name} does not exist")
         continue
     
-    utils.export_methods_globally(CLASS_NAME.lower())
+    utils.export_methods_globally(CLASS_NAME.lower(),globals())
     
-    result=utils.execute_class_method(eval(f"{CLASS_NAME.lower()}"),FUNCTION)
+    result=utils.execute_class_method(eval(f"{CLASS_NAME.lower()}"),utils.FUNCTION)
     print_result(result)
         
 
