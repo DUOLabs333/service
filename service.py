@@ -40,9 +40,9 @@ def Shell(*args, **kwargs):
 ServiceDoesNotExist=utils.DoesNotExist
     
 class Service:
-    def __init__(self,_name,_flags=None,_function=None,_env=None):
+    def __init__(self,_name,_flags=None,_function=None,_env=None,_workdir='.'):
         self.Class = utils.Class(self,CLASS_NAME.lower())
-        self.Class.class_init(_name,_flags,_function)
+        self.Class.class_init(_name,_flags,_function,_workdir)
         
         self.env=utils.get_value(_env,f"export SERVICE_NAME={self.name}")
     
@@ -60,7 +60,7 @@ class Service:
             else:
                 stdout=log_file
                 stderr=subprocess.STDOUT
-            return Shell(f"{self.env}; {command}",stdout=stdout,stderr=stderr,arbitrary=True)
+            return Shell(f"{self.env}; cd {self.workdir}; {command}",stdout=stdout,stderr=stderr,arbitrary=True)
     
     def Ps(self,process="auxiliary"):
         
@@ -109,18 +109,9 @@ class Service:
         self.Exit=decorator_Exit(self.Exit)
         signal.signal(signal.SIGTERM,self.Exit)
         
-    def Loop(self,command,delay=60):
-        if isinstance(command,str):
-            def func():
-                while True:
-                    Run(command)
-                    self.Wait(delay)
-        else:
-            def func():
-                while True:  
-                    command()
-                    self.Wait(delay)
-        threading.Thread(target=func).start()
+    def Loop(self,*args, **kwargs):
+        self.Class.loop(*args, **kwargs)
+        #Run(f'(while true; do "{command}"; sleep {delay}; done)')
 
     def Wait(self,*args, **kwargs):
         utils.wait(*args, **kwargs)
@@ -171,16 +162,19 @@ class Service:
     
     def List(self):
         return self.Class.list()
+    
+    def Workdir(self,work_dir):
+        self.Class.workdir(work_dir)
 
     def Init(self):
-        os.makedirs(f"{ROOT}/{self.self.name}",exist_ok=True)
-        os.chdir(f"{ROOT}/{self.self.name}")
+        os.makedirs(f"{ROOT}/{self.name}",exist_ok=True)
+        os.chdir(f"{ROOT}/{self.name}")
         os.makedirs("data",exist_ok=True)
-        with open(f".{self.name}.py",'a'):
+        with open(f".{CLASS_NAME.lower()}.py",'a'):
             pass
         
         if '--no-edit' not in self.flags:
-            self.self.Edit()
+            self.Edit()
 
     def Edit(self):
         self.Class.edit()
@@ -208,7 +202,7 @@ exec(f"utils.{CLASS_NAME}={CLASS_NAME}")
 NAMES=list_services(NAMES)
 for name in NAMES: 
     try:
-        service=Service(name,FLAGS)
+        service=Service(name,FLAGS,FUNCTION)
     except ServiceDoesNotExist:
         print(f"Service {name} does not exist")
         continue
