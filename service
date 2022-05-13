@@ -78,7 +78,7 @@ class Service:
             
         #Find processes running under main Start script
         elif process=="auxiliary":
-            processes=Shell(["ps","auwwe"]).splitlines()
+            processes=Shell(["ps","auxwwe"]).splitlines()
             processes=[_.split()[1] for _ in processes if f"SERVICE_NAME={self.name}" in _]
             return list(map(int,processes))
 
