@@ -192,7 +192,7 @@ class Service:
         self.Class.log()
     
     def Delete(self):
-        self.Class.stop()
+        self.Class.delete()
     
     def Watch(self):
         self.Class.watch()
