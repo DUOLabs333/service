@@ -47,7 +47,7 @@ class Service:
         self.env=utils.get_value(_env,f"export SERVICE_NAME={self.name}")
     
     #Functions to be used in *service.py
-    def Run(self,command="",pipe=False):
+    def Run(self,command="",pipe=False,track=True):
         with open(f"{TEMPDIR}/service_{self.name}.log","a+") as log_file:
             log_file.write(f"Command: {command}\n")
             log_file.flush()
@@ -60,7 +60,7 @@ class Service:
             else:
                 stdout=log_file
                 stderr=subprocess.STDOUT
-            return Shell(f"{self.env}; cd {self.workdir}; {command}",stdout=stdout,stderr=stderr,arbitrary=True)
+            return Shell(f"{self.env if track else 'true'}; cd {self.workdir}; {command}",stdout=stdout,stderr=stderr,arbitrary=True)
     
     def Ps(self,process="auxiliary"):
         
@@ -85,7 +85,7 @@ class Service:
             _container=self.name
             
         self.Down(f"container stop {_container}; sleep 1")
-        self.Run(f"container start {_container}")
+        self.Run(f"container start {_container}",track=False)
         
         #Wait 2 seconds before beginning
         self.Wait(2)
