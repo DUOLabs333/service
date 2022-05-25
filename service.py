@@ -15,7 +15,6 @@ utils.TEMPDIR=TEMPDIR=utils.get_tempdir()
 NAMES,FLAGS,FUNCTION=utils.extract_arguments()
 
 utils.NAMES=NAMES
-utils.FLAGS=FLAGS
 utils.ROOT=ROOT
 
 SHELL=os.getenv('SHELL','bash')
