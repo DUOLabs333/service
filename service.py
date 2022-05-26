@@ -83,11 +83,10 @@ class Service:
         if not _container:
             _container=self.name
             
-        self.Down(f"container stop {_container}; sleep 1")
+        self.Down(f"container stop {_container}")
         self.Run(f"container start {_container}",track=False)
         
-        #Wait 2 seconds before beginning
-        self.Wait(2)
+        
         with open(f"{TEMPDIR}/service_{self.name}.log","a+") as f:
             Shell(["tail","-f","-n","+1",f"{TEMPDIR}/container_{_container}.log"],stdout=f,block=False)
     
