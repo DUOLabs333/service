@@ -196,7 +196,6 @@ class Service:
         self.Class.watch()
 
 
-exec(f"utils.{CLASS_NAME}={CLASS_NAME}")
 NAMES=list_services(NAMES)
 for name in NAMES: 
     try:
@@ -205,7 +204,7 @@ for name in NAMES:
         print(f"Service {name} does not exist")
         continue
     
-    utils.export_methods_globally(CLASS_NAME.lower(),globals())
+    utils.export_methods_globally(CLASS_NAME,globals())
     
     result=utils.execute_class_method(eval(f"{CLASS_NAME.lower()}"),FUNCTION)
     print_result(result)
