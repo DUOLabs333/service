@@ -98,14 +98,13 @@ class Service:
             func_str=func
             def func():
                 Shell(func_str,arbitrary=True)
-        def decorator_Exit(exit_func):
+        def decorator_Exit(exit_func,func):
             def new_Exit(*args, **kwargs):
-                #So exit() is the last function run
-                func()
                 exit_func(*args, **kwargs)
+                func()
             return new_Exit
-        self.Exit=decorator_Exit(self.Exit)
-        signal.signal(signal.SIGTERM,self.Exit)
+        self.Exit=decorator_Exit(self.Exit,func)
+        signal.signal(signal.SIGTERM,decorator_Exit(self.Exit,exit))
         
     def Loop(self,*args, **kwargs):
         self.Class.loop(*args, **kwargs)
@@ -115,7 +114,7 @@ class Service:
         utils.wait(*args, **kwargs)
     
     def Exit(self,signum,frame):
-        exit()
+        pass
         
     #Commands      
     def Start(self):
