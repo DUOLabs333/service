@@ -16,6 +16,7 @@ NAMES,FLAGS,FUNCTION=utils.extract_arguments()
 
 utils.NAMES=NAMES
 utils.ROOT=ROOT
+utils.GLOBALS=globals()
 
 SHELL=os.getenv('SHELL','bash')
 SHELL_CWD=os.environ.get("PWD")
@@ -203,7 +204,7 @@ for name in NAMES:
         print(f"Service {name} does not exist")
         continue
     
-    utils.export_methods_globally(CLASS_NAME,globals())
+    utils.export_methods_globally(CLASS_NAME)
     
     result=utils.execute_class_method(eval(f"{CLASS_NAME.lower()}"),FUNCTION)
     print_result(result)
