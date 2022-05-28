@@ -136,8 +136,13 @@ class Service:
         
         #If child, run code, then exit 
         if pid==0:
+            
+            #Have a function that returns nothing to make sure the SIGTERM handler is added right
+            def do_nothing():
+                pass
+            self.Down(do_nothing)
+            
             #Open a lock file so I can find it with lsof later
-            signal.signal(signal.SIGTERM,self.Exit)
             lock_file=open(f"{TEMPDIR}/service_{self.name}.lock","w+")
             
             #Run *service.py
