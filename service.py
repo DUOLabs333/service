@@ -87,6 +87,15 @@ class Service:
         
         with open(f"{TEMPDIR}/service_{self.name}.log","a+") as f:
             utils.shell_command(["tail","-f","-n","+1",f"{TEMPDIR}/container_{_container}.log"],stdout=f,block=False)
+        
+        container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
+        
+        #Wait until container ends
+        try:
+            container_main_pid=int(container_main_pid)
+            utils.wait_until_pid_exits(container_main_pid)
+        except ValueError:
+            pass
     
     def Down(self,func):
         #Yes, this decorator stuff is absolutely neccessary, anything else will not work
