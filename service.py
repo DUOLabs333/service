@@ -32,9 +32,6 @@ def print_result(*args, **kwargs):
 
 def split_by_char(*args, **kwargs):
     return utils.split_by_char(*args, **kwargs)
-    
-def Shell(*args, **kwargs):
-    return utils.shell_command(*args, **kwargs)
 
 
 ServiceDoesNotExist=utils.DoesNotExist
@@ -60,17 +57,17 @@ class Service:
             else:
                 stdout=log_file
                 stderr=subprocess.STDOUT
-            return Shell(f"{self.env if track else 'true'}; cd {self.workdir}; {command}",stdout=stdout,stderr=stderr,arbitrary=True)
+            return utils.shell_command(f"{self.env if track else 'true'}; cd {self.workdir}; {command}",stdout=stdout,stderr=stderr,arbitrary=True)
     
-    def Ps(self,process="auxiliary"):
+    def Ps(self,process=None):
         
         #Find main process
-        if process=="main":
+        if process=="main" or ("--main" in self.flags):
             return self.Class.get_main_process()
             
         #Find processes running under main Start script
-        elif process=="auxiliary":
-            processes=Shell(["ps","auxwwe"]).splitlines()
+        elif process=="auxiliary" or ("--auxiliary" in self.flags):
+            processes=utils.shell_command(["ps","auxwwe"]).splitlines()
             processes=[_.split()[1] for _ in processes if f"SERVICE_NAME={self.name}" in _]
             return list(map(int,processes))
 
@@ -89,7 +86,7 @@ class Service:
         
         
         with open(f"{TEMPDIR}/service_{self.name}.log","a+") as f:
-            Shell(["tail","-f","-n","+1",f"{TEMPDIR}/container_{_container}.log"],stdout=f,block=False)
+            utils.shell_command(["tail","-f","-n","+1",f"{TEMPDIR}/container_{_container}.log"],stdout=f,block=False)
     
     def Down(self,func):
         #Yes, this decorator stuff is absolutely neccessary, anything else will not work
@@ -98,7 +95,7 @@ class Service:
             #So func won't be overwritten
             func_str=func
             def func():
-                Shell(func_str,arbitrary=True)
+                utils.shell_command(func_str,arbitrary=True)
         def decorator_Exit(exit_func,func):
             def new_Exit(*args, **kwargs):
                 exit_func(*args, **kwargs)
