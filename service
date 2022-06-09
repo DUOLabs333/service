@@ -99,11 +99,11 @@ class Service:
         container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
         
         #Wait until container ends
-        try:
-            container_main_pid=int(container_main_pid)
-            utils.wait_until_pid_exits(container_main_pid)
-        except ValueError:
-            pass
+#        try:
+#            container_main_pid=int(container_main_pid)
+#            utils.wait_until_pid_exits(container_main_pid)
+#        except ValueError:
+#            pass
     
     def Down(self,func):
         #Yes, this decorator stuff is absolutely neccessary, anything else will not work
