@@ -50,6 +50,8 @@ class Service:
         self.Class.class_init(_name,_flags,_function,_workdir)
         
         self.env=utils.get_value(_env,f"export SERVICE_NAME={self.name}")
+        
+        self.temp_services=[]
     
     #Functions to be used in *service.py
     def Run(self,command="",pipe=False,track=True):
@@ -130,7 +132,11 @@ class Service:
     
     def Exit(self,signum,frame):
         pass
-        
+    
+    def Dependency(self,service):
+        if "Stopped" in utils.shell_command(["service","status",service]):
+            self.temp_services.append(service)
+            utils.shell_command(["service","start",service])
     #Commands      
     def Start(self):
         
@@ -170,6 +176,9 @@ class Service:
        
     def Stop(self):
         output=[self.Class.stop()]
+        for service in self.temp_services:
+            utils.shell_command(["service","stop",service]) #Stop any services that were stopped when called as dependencies
+            
         self.Class.cleanup_after_stop()
         return output
         
