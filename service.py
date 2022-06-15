@@ -93,11 +93,11 @@ class Service:
         container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
         
         #Wait until container ends
-#        try:
-#            container_main_pid=int(container_main_pid)
-#            utils.wait_until_pid_exits(container_main_pid)
-#        except ValueError:
-#            pass
+        try:
+            container_main_pid=int(container_main_pid)
+            utils.wait_until_pid_exits(container_main_pid)
+        except ValueError:
+            pass
     
     def Down(self,func):
         #Yes, this decorator stuff is absolutely neccessary, anything else will not work
@@ -113,7 +113,13 @@ class Service:
                 func()
             return new_Exit
         self.Exit=decorator_Exit(self.Exit,func)
-        signal.signal(signal.SIGTERM,decorator_Exit(self.Exit,exit))
+        
+        #Kill all auxiliary processes when exiting
+        def Exit_add_on():
+            for pid in self.Ps("auxiliary"):
+                utils.kill_process_gracefully(pid)
+            exit()
+        signal.signal(signal.SIGTERM,decorator_Exit(self.Exit,Exit_add_on))
         
     def Loop(self,*args, **kwargs):
         self.Class.loop(*args, **kwargs)
@@ -127,7 +133,9 @@ class Service:
     
     def Dependency(self,service):
         if "Stopped" in utils.shell_command(["service","status",service]):
-            self.temp_services.append(service)
+            #self.temp_services.append(service)
+            #Kill service when stopping
+            self.Down(lambda : utils.shell_command(["service","stop",service]))
             utils.shell_command(["service","start",service])
     #Commands      
     def Start(self):
@@ -149,10 +157,8 @@ class Service:
         #If child, run code, then exit 
         if pid==0:
             
-            #Have a function that returns nothing to make sure the SIGTERM handler is added right
-            def do_nothing():
-                pass
-            self.Down(do_nothing)
+            #Have a lambda that does nothing to make sure the SIGTERM handler is added right
+            self.Down(lambda : None)
             
             #Open a lock file so I can find it with lsof later
             lock_file=open(f"{TEMPDIR}/service_{self.name}.lock","w+")
@@ -167,12 +173,7 @@ class Service:
             exit()
        
     def Stop(self):
-        output=[self.Class.stop()]
-        for service in self.temp_services:
-            utils.shell_command(["service","stop",service]) #Stop any services that were stopped when called as dependencies
-            
-        self.Class.cleanup_after_stop()
-        return output
+        return [self.Class.stop()]
         
     def Restart(self):
         return self.Class.restart()
