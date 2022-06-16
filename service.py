@@ -88,7 +88,7 @@ class Service:
         
         
         with open(f"{TEMPDIR}/service_{self.name}.log","a+") as f:
-            utils.shell_command(["tail","-f","-n","+1",f"{TEMPDIR}/container_{_container}.log"],stdout=f,block=False)
+            utils.shell_command(["tail","-f","-n","+1",f"{TEMPDIR}/container_{_container}.log"],stdout=f,block=False,env=os.environ.copy().update({"SERVICE_NAME":self.name}))
         
         container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
         
@@ -136,7 +136,8 @@ class Service:
             #self.temp_services.append(service)
             #Kill service when stopping
             self.Down(lambda : utils.shell_command(["service","stop",service]))
-            utils.shell_command(["service","start",service])
+            #utils.shell_command(["service","start",service])
+            self.Run(f"service start {service}",track=False)
     #Commands      
     def Start(self):
         
