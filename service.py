@@ -44,7 +44,7 @@ class Service:
         self.env=utils.get_value(_env,f"export SERVICE_NAME={self.name}")
         
         self.temp_services=[]
-    
+
     #Functions to be used in *service.py
     def Run(self,command="",pipe=False,track=True):
         with open(f"{TEMPDIR}/service_{self.name}.log","a+") as log_file:
@@ -145,7 +145,7 @@ class Service:
             return f"Service {self.name} is already started"
         
         if os.path.exists("data"):
-            os.chdir("data")
+            self.workdir="data"
         
         if "Enabled" in self.Status():
             service_file="service.py"
@@ -156,8 +156,7 @@ class Service:
         pid=os.fork()
         
         #If child, run code, then exit 
-        if pid==0:
-            
+        if pid==0:   
             #Have a lambda that does nothing to make sure the SIGTERM handler is added right
             self.Down(lambda : None)
             
