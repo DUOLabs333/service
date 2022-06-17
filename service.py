@@ -86,7 +86,7 @@ class Service:
             
         self.Down(f"container stop {_container}")
         self.Run(f"container start {_container}",track=False)
-        
+        self.Run(f"echo Started container {_container}",track=False)
         
         with open(f"{TEMPDIR}/service_{self.name}.log","a+") as f:
             utils.shell_command(["tail","-f","-n","+1",f"{TEMPDIR}/container_{_container}.log"],stdout=f,block=False,env=os.environ.copy().update({"SERVICE_NAME":self.name}))
