@@ -146,7 +146,7 @@ class Service:
             return f"Service {self.name} is already started"
         
         if os.path.exists("data"):
-            self.workdir="data"
+            self.Workdir("data")
         
         if "Enabled" in self.Status():
             service_file="service.py"
