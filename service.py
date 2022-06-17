@@ -48,8 +48,9 @@ class Service:
     #Functions to be used in *service.py
     def Run(self,command="",pipe=False,track=True):
         with open(f"{TEMPDIR}/service_{self.name}.log","a+") as log_file:
-            log_file.write(f"Command: {command}\n")
-            log_file.flush()
+            if track:
+                log_file.write(f"Command: {command}\n")
+                log_file.flush()
 
             #Pipe output to variable
             if pipe:
