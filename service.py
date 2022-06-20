@@ -2,10 +2,8 @@
 import subprocess
 import os
 import signal
-import threading
 
 # < include utils.py >
-
 import utils
 
 CLASS_NAME="Service"
@@ -125,11 +123,11 @@ class Service:
         exit()
     
     def Dependency(self,service):
-        if "Stopped" in utils.shell_command(["service","status",service]):
+        if "Stopped" in self.__class__(service).Status():
             #self.temp_services.append(service)
             #Kill service when stopping
-            self.Down(lambda : self.__class__(service).Stop())
-            #utils.shell_command(["service","start",service])
+            self.Down(self.__class__(service).Stop)
+            #utils.shell_command(["service","start",service],stdout=subprocess.DEVNULL)
             self.__class__(service).Start()
     #Commands      
     def Start(self):
@@ -137,21 +135,21 @@ class Service:
         if "Started" in self.Status():
             return f"Service {self.name} is already started"
         
-        if os.path.exists("data"):
-            self.Workdir("data")
-        
-        if "Enabled" in self.Status():
-            service_file="service.py"
-        else:
-            service_file=".service.py"
-        
         #Fork process, so it can run in the background
-        pid=os.fork()
-        
+        fork=os.fork()
         #If child, run code, then exit 
-        if pid==0:
+        if fork==0:
             signal.signal(signal.SIGTERM,self.Exit)
+            signal.signal(signal.SIGCHLD, signal.SIG_IGN) #Prevent defunct processes (maybe just double fork instead (remember to exit() at the end)?
             
+            if os.path.exists("data"):
+                self.Workdir("data")
+            
+            if "Enabled" in self.Status():
+                service_file="service.py"
+            else:
+                service_file=".service.py"
+                
             #Open a lock file so I can find it with lsof later
             lock_file=open(f"{TEMPDIR}/service_{self.name}.lock","w+")
             
