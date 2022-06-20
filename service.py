@@ -44,6 +44,8 @@ class Service:
         self.env=utils.get_value(_env,f"export SERVICE_NAME={self.name}")
         
         self.temp_services=[]
+        
+        self.exit_cmds=[]
 
     #Functions to be used in *service.py
     def Run(self,command="",pipe=False,track=True):
@@ -101,26 +103,12 @@ class Service:
             pass
     
     def Down(self,func):
-        #Yes, this decorator stuff is absolutely neccessary, anything else will not work
-    
         if isinstance(func,str):
             #So func won't be overwritten
             func_str=func
             def func():
                 self.Run(func_str)
-        def decorator_Exit(exit_func,func):
-            def new_Exit(*args, **kwargs):
-                exit_func(*args, **kwargs)
-                func()
-            return new_Exit
-        self.Exit=decorator_Exit(self.Exit,func)
-        
-        #Kill all auxiliary processes when exiting
-        def Exit_add_on():
-            for pid in self.Ps("auxiliary"):
-                utils.kill_process_gracefully(pid)
-            exit()
-        signal.signal(signal.SIGTERM,decorator_Exit(self.Exit,Exit_add_on))
+        self.exit_cmds.append(func)
         
     def Loop(self,*args, **kwargs):
         self.Class.loop(*args, **kwargs)
@@ -130,15 +118,19 @@ class Service:
         utils.wait(*args, **kwargs)
     
     def Exit(self,signum,frame):
-        pass
+        for cmd in self.exit_cmds:
+            cmd()
+        for pid in self.Ps("auxiliary"):
+            utils.kill_process_gracefully(pid)
+        exit()
     
     def Dependency(self,service):
         if "Stopped" in utils.shell_command(["service","status",service]):
             #self.temp_services.append(service)
             #Kill service when stopping
-            self.Down(lambda : utils.shell_command(["service","stop",service]))
+            self.Down(lambda : self.__class__(service).Stop())
             #utils.shell_command(["service","start",service])
-            self.Run(f"service start {service}",track=False)
+            self.__class__(service).Start()
     #Commands      
     def Start(self):
         
@@ -157,9 +149,8 @@ class Service:
         pid=os.fork()
         
         #If child, run code, then exit 
-        if pid==0:   
-            #Have a lambda that does nothing to make sure the SIGTERM handler is added right
-            self.Down(lambda : None)
+        if pid==0:
+            signal.signal(signal.SIGTERM,self.Exit)
             
             #Open a lock file so I can find it with lsof later
             lock_file=open(f"{TEMPDIR}/service_{self.name}.lock","w+")
@@ -167,7 +158,7 @@ class Service:
             #Run *service.py
             with open(f"{ROOT}/{self.name}/{service_file}") as f:
                 code=f.read()
-            exec(code,globals(),locals())
+            exec(code,self.globals,locals())
             
             #Don't exit script yet.
             self.Wait()
@@ -225,8 +216,6 @@ for name in NAMES:
     except ServiceDoesNotExist:
         print(f"Service {name} does not exist")
         continue
-    
-    utils.export_methods_globally(CLASS_NAME)
     
     result=utils.execute_class_method(eval(f"{CLASS_NAME.lower()}"),FUNCTION)
     print_result(result)
