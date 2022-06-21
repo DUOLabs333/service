@@ -89,7 +89,7 @@ class Service:
         self.Run(f"echo Started container {_container}",track=False)
         
         with open(f"{TEMPDIR}/service_{self.name}.log","a+") as f:
-            utils.shell_command(["tail","-f","-n","+1",f"{TEMPDIR}/container_{_container}.log"],stdout=f,block=False,env=os.environ.copy().update({"SERVICE_NAME":self.name}))
+            utils.shell_command(["tail","-f","-n","+1",f"{TEMPDIR}/container_{_container}.log"],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
         
         container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
         
@@ -135,12 +135,9 @@ class Service:
         if "Started" in self.Status():
             return f"Service {self.name} is already started"
         
-        #Fork process, so it can run in the background
-        fork=os.fork()
         #If child, run code, then exit 
-        if fork==0:
+        if os.fork()==0:
             signal.signal(signal.SIGTERM,self.Exit)
-            signal.signal(signal.SIGCHLD, signal.SIG_IGN) #Prevent defunct processes (maybe just double fork instead (remember to exit() at the end)?
             
             if os.path.exists("data"):
                 self.Workdir("data")
