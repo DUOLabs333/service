@@ -10,14 +10,8 @@ CLASS_NAME="Service"
 utils.ROOT=ROOT=utils.get_root_directory(CLASS_NAME)
 utils.TEMPDIR=TEMPDIR=utils.get_tempdir()
 
-NAMES,FLAGS,FUNCTION=utils.extract_arguments()
-
-utils.NAMES=NAMES
 utils.ROOT=ROOT
 utils.GLOBALS=globals()
-
-SHELL=os.getenv('SHELL','bash')
-SHELL_CWD=os.environ.get("PWD")
 
 def list_services(*args, **kwargs):
     return utils.list_items_in_root(*args, FLAGS,CLASS_NAME,**kwargs)    
@@ -203,17 +197,21 @@ class Service:
     def Watch(self):
         self.Class.watch()
 
-
-NAMES=list_services(NAMES)
-for name in NAMES: 
-    try:
-        service=Service(name,FLAGS,FUNCTION)
-    except ServiceDoesNotExist:
-        print(f"Service {name} does not exist")
-        continue
+if __name__ == "__main__":
     
-    result=utils.execute_class_method(eval(f"{CLASS_NAME.lower()}"),FUNCTION)
-    print_result(result)
+    NAMES,FLAGS,FUNCTION=utils.extract_arguments()
+    
+    utils.NAMES=NAMES
+    NAMES=list_services(NAMES)
+    for name in NAMES: 
+        try:
+            service=Service(name,FLAGS,FUNCTION)
+        except ServiceDoesNotExist:
+            print(f"Service {name} does not exist")
+            continue
+        
+        result=utils.execute_class_method(eval(f"{CLASS_NAME.lower()}"),FUNCTION)
+        print_result(result)
         
 
     
