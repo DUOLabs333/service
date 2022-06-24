@@ -25,9 +25,6 @@ def print_result(*args, **kwargs):
 def split_by_char(*args, **kwargs):
     return utils.split_by_char(*args, **kwargs)
 
-
-ServiceDoesNotExist=utils.DoesNotExist
-    
 class Service:
     def __init__(self,_name,_flags=None,_function=None,_env=None,_workdir='.'):
         self.Class = utils.Class(self,CLASS_NAME.lower())
@@ -201,12 +198,10 @@ if __name__ == "__main__":
     
     NAMES,FLAGS,FUNCTION=utils.extract_arguments()
     
-    utils.NAMES=NAMES
-    NAMES=list_services(NAMES)
-    for name in NAMES: 
+    for name in list_services(NAMES): 
         try:
             service=Service(name,FLAGS,FUNCTION)
-        except ServiceDoesNotExist:
+        except utils.DoesNotExist:
             print(f"Service {name} does not exist")
             continue
         
