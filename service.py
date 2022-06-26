@@ -6,15 +6,9 @@ import signal
 # < include utils.py >
 import utils
 
-CLASS_NAME="Service"
-utils.ROOT=ROOT=utils.get_root_directory(CLASS_NAME)
-utils.TEMPDIR=TEMPDIR=utils.get_tempdir()
 
-utils.ROOT=ROOT
 utils.GLOBALS=globals()
 
-def list_services(*args, **kwargs):
-    return utils.list_items_in_root(*args, FLAGS,CLASS_NAME,**kwargs)    
 
 def flatten(*args, **kwargs):
     return utils.flatten_list(*args, **kwargs)
@@ -27,7 +21,7 @@ def split_by_char(*args, **kwargs):
 
 class Service:
     def __init__(self,_name,_flags=None,_function=None,_env=None,_workdir='.'):
-        self.Class = utils.Class(self,CLASS_NAME.lower())
+        self.Class = utils.Class(self)
         self.Class.class_init(_name,_flags,_function,_workdir)
         
         self.env=utils.get_value(_env,f"export SERVICE_NAME={self.name}")
@@ -38,7 +32,7 @@ class Service:
 
     #Functions to be used in *service.py
     def Run(self,command="",pipe=False,track=True):
-        with open(f"{TEMPDIR}/service_{self.name}.log","a+") as log_file:
+        with open(f"{utils.TEMPDIR}/service_{self.name}.log","a+") as log_file:
             if track:
                 log_file.write(f"Command: {command}\n")
                 log_file.flush()
@@ -79,8 +73,8 @@ class Service:
         self.Run(f"container start {_container}",track=False)
         self.Run(f"echo Started container {_container}",track=False)
         
-        with open(f"{TEMPDIR}/service_{self.name}.log","a+") as f:
-            utils.shell_command(["tail","-f","-n","+1",f"{TEMPDIR}/container_{_container}.log"],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
+        with open(f"{utils.TEMPDIR}/service_{self.name}.log","a+") as f:
+            utils.shell_command(["tail","-f","-n","+1",f"{utils.TEMPDIR}/container_{_container}.log"],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
         
         container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
         
@@ -139,7 +133,7 @@ class Service:
                 service_file=".service.py"
                 
             #Open a lock file so I can find it with lsof later
-            lock_file=open(f"{TEMPDIR}/service_{self.name}.lock","w+")
+            lock_file=open(f"{utils.TEMPDIR}/service_{self.name}.lock","w+")
             
             #Run *service.py
             with open(f"{ROOT}/{self.name}/{service_file}") as f:
@@ -167,23 +161,39 @@ class Service:
         os.makedirs(f"{ROOT}/{self.name}",exist_ok=True)
         os.chdir(f"{ROOT}/{self.name}")
         os.makedirs("data",exist_ok=True)
-        with open(f".{CLASS_NAME.lower()}.py",'a'):
+        with open(f".service.py",'a'):
             pass
         
         if '--no-edit' not in self.flags:
             self.Edit()
 
     def Edit(self):
-        self.Class.edit()
+        if "Enabled" in self.Status():
+            utils.shell_command([os.getenv("EDITOR","vi"),f"{ROOT}/{self.name}/service.py"],stdout=None)
+        else:
+            utils.shell_command([os.getenv("EDITOR","vi"),f"{ROOT}/{self.name}/.service.py"],stdout=None)
+            
     def Status(self):
-        return self.Class.status()
+        return self.Class.status() + ["Enabled" if os.path.exists(f"{ROOT}/{self.name}/service.py") else "Disabled"]
     
     def Enable(self):
-        return self.Class.enable()
+        if "Enabled" in self.Status():
+            return [f"Service {self.name} is already enabled"]
+        else:
+            os.rename(f"{ROOT}/{self.name}/.service.py",f"{ROOT}/{self.name}/service.py")
+        
+        if '--now' in self.flags:
+            return [self.Start()]
 
             
     def Disable(self):
-        return self.Class.disable()
+        if "Disabled" in self.Status():
+            return [f"Service {self.name} is already disabled"]
+        else:
+            os.rename(f"{ROOT}/{self.name}/service.py",f"{ROOT}/{self.name}/.service.py")
+        
+        if '--now' in self.flags:
+            return [self.Stop()]
 
     def Log(self):
         self.Class.log()
@@ -193,19 +203,20 @@ class Service:
     
     def Watch(self):
         self.Class.watch()
-
+utils.CLASS=Service
+utils.ROOT=ROOT=utils.get_root_directory()
 if __name__ == "__main__":
     
     NAMES,FLAGS,FUNCTION=utils.extract_arguments()
     
-    for name in list_services(NAMES): 
+    for name in utils.list_items_in_root(NAMES, FLAGS): 
         try:
-            service=Service(name,FLAGS,FUNCTION)
+            item=utils.CLASS(name,FLAGS,FUNCTION)
         except utils.DoesNotExist:
             print(f"Service {name} does not exist")
             continue
         
-        result=utils.execute_class_method(eval(f"{CLASS_NAME.lower()}"),FUNCTION)
+        result=utils.execute_class_method(item,FUNCTION)
         print_result(result)
         
 
