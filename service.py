@@ -103,8 +103,9 @@ class Service:
     def Exit(self,signum,frame):
         for cmd in self.exit_cmds:
             cmd()
-        for pid in self.Ps("auxiliary"):
-            utils.kill_process_gracefully(pid)
+            
+        self.Class.kill_auxiliary_processes()
+        
         exit()
     
     def Dependency(self,service):

@@ -217,7 +217,7 @@ if __name__ == "__main__":
     
     NAMES,FLAGS,FUNCTION=utils.extract_arguments()
     
-    for name in utils.list_items_in_root(NAMES, FLAGS): 
+    for name in utils.list_items_in_root(NAMES, FLAGS):
         try:
             item=utils.CLASS(name,FLAGS,FUNCTION)
         except utils.DoesNotExist:
