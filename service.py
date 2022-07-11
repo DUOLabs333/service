@@ -20,9 +20,9 @@ def split_by_char(*args, **kwargs):
     return utils.split_by_char(*args, **kwargs)
 
 class Service:
-    def __init__(self,_name,_flags=None,_function=None,_env=None,_workdir='.'):
+    def __init__(self,_name,_flags=None,_env=None,_workdir='.'):
         self.Class = utils.Class(self)
-        self.Class.class_init(_name,_flags,_function,_workdir)
+        self.Class.class_init(_name,_flags,_workdir)
         
         self.env=utils.get_value(_env,f"export SERVICE_NAME={self.name}")
         
@@ -211,12 +211,12 @@ if __name__ == "__main__":
     NAMES,FLAGS,FUNCTION=utils.extract_arguments()
     
     for name in utils.list_items_in_root(NAMES, FLAGS): 
-        try:
-            item=utils.CLASS(name,FLAGS,FUNCTION)
-        except utils.DoesNotExist:
-            print(f"Service {name} does not exist")
-            continue
-        
+        if FUNCTION!="init": #If you're running Init, skip this check, as you know it doesn't exist yet.
+            try:
+                item=utils.CLASS(name,FLAGS)
+            except utils.DoesNotExist:
+                print(f"Service {name} does not exist")
+                continue
         result=utils.execute_class_method(item,FUNCTION)
         print_result(result)
         
