@@ -50,11 +50,11 @@ class Service:
     def Ps(self,process=None):
         
         #Find main process
-        if process=="main" or ("--main" in self.flags):
+        if process=="main" or ("main" in self.flags):
             return self.Class.get_main_process()
             
         #Find processes running under main Start script
-        elif process=="auxiliary" or ("--auxiliary" in self.flags):
+        elif process=="auxiliary" or ("auxiliary" in self.flags):
             processes=utils.shell_command(["ps","auxwwe"]).splitlines()
             processes=[_.split()[1] for _ in processes if f"SERVICE_NAME={self.name}" in _]
             return list(map(int,processes))
@@ -165,7 +165,7 @@ class Service:
         with open(f".service.py",'a'):
             pass
         
-        if '--no-edit' not in self.flags:
+        if 'no-edit' not in self.flags:
             self.Edit()
 
     def Edit(self):
@@ -183,7 +183,7 @@ class Service:
         else:
             os.rename(f"{ROOT}/{self.name}/.service.py",f"{ROOT}/{self.name}/service.py")
         
-        if '--now' in self.flags:
+        if 'now' in self.flags:
             return [self.Start()]
 
             
@@ -193,7 +193,7 @@ class Service:
         else:
             os.rename(f"{ROOT}/{self.name}/service.py",f"{ROOT}/{self.name}/.service.py")
         
-        if '--now' in self.flags:
+        if 'now' in self.flags:
             return [self.Stop()]
 
     def Log(self):
