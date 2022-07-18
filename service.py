@@ -6,7 +6,7 @@ import signal
 # < include '../utils/utils.py' >
 import utils
 
-
+import importlib.machinery, shutil
 utils.GLOBALS=globals()
 
 
@@ -64,19 +64,25 @@ class Service:
         self.env=utils.add_environment_variable_to_string(self.env,*args, **kwargs)
     
     def Container(self,_container=None):
-        #Convience --- if conainer name is not specified, it will assume that the container is the same name as the service
-        
+        #Convinence --- if conainer name is not specified, it will assume that the container is the same name as the service
+        container = importlib.machinery.SourceFileLoader("gfg",shutil.which("container")).load_module()
         if not _container:
             _container=self.name
-            
-        self.Down(f"container stop {_container}")
-        self.Run(f"container start {_container}",track=False)
+        
+        _container=container.Container(_container)
+        self.Down(lambda : _container.Stop())
+        #self.Down(f"container stop {_container}")
+        
+        _container.Start()
+        #self.Run(f"container start {_container}",track=False)
+        
         self.Run(f"echo Started container {_container}",track=False)
         
         with open(f"{utils.TEMPDIR}/service_{self.name}.log","a+") as f:
-            utils.shell_command(["tail","-f","-n","+1",f"{utils.TEMPDIR}/container_{_container}.log"],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
+            utils.shell_command(["tail","-f","-n","+1",f"{utils.TEMPDIR}/container_{_container.name}.log"],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
         
-        container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
+        container_main_pid=_container.Ps("main")[0]
+        #container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
         
         #Wait until container ends
         try:
