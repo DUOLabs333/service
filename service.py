@@ -18,7 +18,7 @@ def print_result(*args, **kwargs):
 
 def split_by_char(*args, **kwargs):
     return utils.split_by_char(*args, **kwargs)
-
+    
 class Service:
     def __init__(self,_name,_flags=None,_env=None,_workdir='.'):
         self.Class = utils.Class(self)
@@ -32,7 +32,7 @@ class Service:
 
     #Functions to be used in *service.py
     def Run(self,command="",pipe=False,track=True):
-        with open(f"{utils.TEMPDIR}/service_{self.name}.log","a+") as log_file:
+        with open(self.log,"a+") as log_file:
             if track:
                 log_file.write(f"Command: {command}\n")
                 log_file.flush()
@@ -78,8 +78,8 @@ class Service:
         
         self.Run(f"echo Started container {_container}",track=False)
         
-        with open(f"{utils.TEMPDIR}/service_{self.name}.log","a+") as f:
-            utils.shell_command(["tail","-f","-n","+1",f"{utils.TEMPDIR}/container_{_container.name}.log"],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
+        with open(self.log,"a+") as f:
+            utils.shell_command(["tail","-f","-n","+1",self.log],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
         
         container_main_pid=_container.Ps("main")[0]
         #container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
@@ -140,7 +140,7 @@ class Service:
                 service_file=".service.py"
                 
             #Open a lock file so I can find it with lsof later
-            lock_file=open(f"{utils.TEMPDIR}/service_{self.name}.lock","w+")
+            open(self.lock,"w+")
             
             #Run *service.py
             with open(f"{ROOT}/{self.name}/{service_file}") as f:
