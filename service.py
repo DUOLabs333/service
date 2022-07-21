@@ -143,9 +143,7 @@ class Service:
             open(self.lock,"w+")
             
             #Run *service.py
-            with open(f"{ROOT}/{self.name}/{service_file}") as f:
-                code=f.read()
-            exec(code,self.globals,locals())
+            utils.execute(self,open(f"{ROOT}/{self.name}/{service_file}"))
             
             #Don't exit script yet.
             self.Wait()
