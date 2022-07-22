@@ -140,7 +140,7 @@ class Service:
                 service_file=".service.py"
                 
             #Open a lock file so I can find it with lsof later
-            open(self.lock,"w+")
+            lock_file=open(self.lock,"w+")
             
             #Run *service.py
             utils.execute(self,open(f"{ROOT}/{self.name}/{service_file}"))
@@ -215,12 +215,7 @@ if __name__ == "__main__":
     NAMES,FLAGS,FUNCTION=utils.extract_arguments()
     
     for name in utils.list_items_in_root(NAMES, FLAGS): 
-        if FUNCTION!="init": #If you're running Init, skip this check, as you know it doesn't exist yet.
-            try:
-                item=utils.CLASS(name,FLAGS)
-            except utils.DoesNotExist:
-                print(f"Service {name} does not exist")
-                continue
+        item=utils.CLASS(name,FLAGS)
         result=utils.execute_class_method(item,FUNCTION)
         print_result(result)
         
