@@ -21,8 +21,7 @@ def split_by_char(*args, **kwargs):
     
 class Service:
     def __init__(self,_name,_flags=None,_env=None,_workdir='.'):
-        self.Class = utils.Class(self)
-        self.Class.class_init(_name,_flags,_workdir)
+        self.Class = utils.Class(self,_name,_flags,_workdir)
         
         self.env=utils.get_value(_env,f"export SERVICE_NAME={self.name}")
         
