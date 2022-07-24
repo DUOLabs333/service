@@ -78,7 +78,7 @@ class Service:
         self.Run(f"echo Started container {_container.name}",track=False)
         
         with open(self.log,"a+") as f:
-            utils.shell_command(["tail","-f","-n","+1",self.log],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
+            utils.shell_command(["tail","-f","-n","+1",_container.log],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
         
         container_main_pid=_container.Ps("main")[0]
         #container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
