@@ -75,7 +75,7 @@ class Service:
         _container.Start()
         #self.Run(f"container start {_container}",track=False)
         
-        self.Run(f"echo Started container {_container}",track=False)
+        self.Run(f"echo Started container {_container.name}",track=False)
         
         with open(self.log,"a+") as f:
             utils.shell_command(["tail","-f","-n","+1",self.log],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
