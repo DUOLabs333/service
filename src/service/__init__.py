@@ -65,24 +65,22 @@ class Service:
     
     def Container(self,_container=None):
         #Convinence --- if conainer name is not specified, it will assume that the container is the same name as the service
-        container = importlib.machinery.SourceFileLoader("gfg",shutil.which("container")).load_module()
         if not _container:
             _container=self.name
         
         _container=container.Container(_container)
-        self.Down(lambda : _container.Stop())
-        #self.Down(f"container stop {_container}")
+        #self.Down(lambda : _container.Stop())
+        self.Down(lambda : os.system(f"container stop {_container}"))
         
-        _container.Start()
-        #self.Run(f"container start {_container}",track=False)
+        #_container.Start()
+        self.Run(f"container start {_container}",track=False)
         
         self.Run(f"echo Started container {_container.name}",track=False)
         
         with open(self.log,"a+") as f:
-            utils.shell_command(["tail","-f","-n","+1",_container.log],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
+            utils.shell_command(f"container watch {_container}",stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
         
-        container_main_pid=_container.Ps("main")[0]
-        #container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
+        container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
         
         #Wait until container ends
         try:
@@ -210,7 +208,7 @@ class Service:
         self.Class.watch()
 utils.CLASS=Service
 utils.ROOT=ROOT=utils.get_root_directory()
-if __name__ == "__main__":
+def main():
     
     NAMES,FLAGS,FUNCTION=utils.extract_arguments()
     
