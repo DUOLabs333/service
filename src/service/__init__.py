@@ -68,17 +68,17 @@ class Service:
         if not _container:
             _container=self.name
         
-        _container=container.Container(_container)
+        #_container=container.Container(_container)
         #self.Down(lambda : _container.Stop())
         self.Down(lambda : os.system(f"container stop {_container}"))
         
         #_container.Start()
         self.Run(f"container start {_container}",track=False)
         
-        self.Run(f"echo Started container {_container.name}",track=False)
+        self.Run(f"echo Started container {_container}",track=False)
         
         with open(self.log,"a+") as f:
-            utils.shell_command(f"container watch {_container}",stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
+            utils.shell_command(["container", "watch", _container],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
         
         container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
         
