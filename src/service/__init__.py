@@ -127,25 +127,26 @@ class Service:
         
         #If child, run code, then exit 
         if os.fork()==0:
-            signal.signal(signal.SIGTERM,self.Exit)
-            
-            if os.path.exists("data"):
-                self.Workdir("data")
-            
-            if "Enabled" in self.Status():
-                service_file="service.py"
-            else:
-                service_file=".service.py"
+            if os.fork()==0: #Double fork
+                signal.signal(signal.SIGTERM,self.Exit)
                 
-            #Open a lock file so I can find it with lsof later
-            lock_file=open(self.lock,"w+")
-            
-            #Run *service.py
-            utils.execute(self,open(f"{ROOT}/{self.name}/{service_file}"))
-            
-            #Don't exit script yet.
-            self.Wait()
-            exit()
+                if os.path.exists("data"):
+                    self.Workdir("data")
+                
+                if "Enabled" in self.Status():
+                    service_file="service.py"
+                else:
+                    service_file=".service.py"
+                    
+                #Open a lock file so I can find it with lsof later
+                lock_file=open(self.lock,"w+")
+                
+                #Run *service.py
+                utils.execute(self,open(f"{ROOT}/{self.name}/{service_file}"))
+                
+                #Don't exit script yet.
+                self.Wait()
+                exit()
        
     def Stop(self):
         return [self.Class.stop()]
