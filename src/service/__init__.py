@@ -125,9 +125,9 @@ class Service:
         if "Started" in self.Status():
             return f"Service {self.name} is already started"
         
-        #If child, run code, then exit 
         if os.fork()==0:
             if os.fork()==0: #Double fork
+                #If child, run code, then exit 
                 signal.signal(signal.SIGTERM,self.Exit)
                 
                 if os.path.exists("data"):
@@ -137,7 +137,6 @@ class Service:
                     service_file="service.py"
                 else:
                     service_file=".service.py"
-                    
                 #Open a lock file so I can find it with lsof later
                 lock_file=open(self.lock,"w+")
                 
@@ -147,6 +146,8 @@ class Service:
                 #Don't exit script yet.
                 self.Wait()
                 exit()
+            print("Hi")
+            exit()
        
     def Stop(self):
         return [self.Class.stop()]
