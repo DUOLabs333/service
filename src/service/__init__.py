@@ -146,7 +146,6 @@ class Service:
                 #Don't exit script yet.
                 self.Wait()
                 exit()
-            print("Hi")
             exit()
        
     def Stop(self):
