@@ -24,7 +24,7 @@ class Service:
     def __init__(self,_name,_flags=None,_env=None,_workdir='.'):
         self.Class = utils.Class(self,_name,_flags,_workdir)
         
-        self.env=utils.get_value(_env,f"export SERVICE_NAME={self.name}")
+        self.env=utils.get_value(_env,[f"SERVICE_NAME={self.name}"])
         
         self.temp_services=[]
         
@@ -45,7 +45,7 @@ class Service:
             else:
                 stdout=log_file
                 stderr=subprocess.STDOUT
-            return utils.shell_command(f"{self.env if track else 'true'}; cd {self.workdir}; {command}",stdout=stdout,stderr=stderr,arbitrary=True)
+            return utils.shell_command(f"{utils.env_list_to_string(self.env) if track else 'true'}; cd {self.workdir}; {command}",stdout=stdout,stderr=stderr,arbitrary=True)
     
     def Ps(self,process=None):
         
@@ -60,8 +60,8 @@ class Service:
             return list(map(int,processes))
 
     
-    def Env(self,*args, **kwargs):
-        self.env=utils.add_environment_variable_to_string(self.env,*args, **kwargs)
+    def Env(self,env_var):
+        self.env.append(env_var)
     
     def Container(self,_container=None):
         #Convinence --- if conainer name is not specified, it will assume that the container is the same name as the service
