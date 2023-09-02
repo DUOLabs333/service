@@ -21,47 +21,24 @@ def split_by_char(*args, **kwargs):
     return utils.split_by_char(*args, **kwargs)
     
 class Service:
-    def __init__(self,_name,_flags=None,_env=None,_workdir='.'):
-        self.Class = utils.Class(self,_name,_flags,_workdir)
+    def __init__(self,name,flags,**kwargs):
         
-        self.env=utils.get_value(_env,[f"SERVICE_NAME={self.name}"])
+        self.env=kwargs.get("env",[f"SERVICE_NAME={self.name}"])
         
         self.temp_services=[]
         
-        self.exit_cmds=[]
+        super().__init__(self,name,flags,kwargs)
 
     #Functions to be used in *service.py
-    def Run(self,command="",pipe=False,track=True):
-        with open(self.log,"a+") as log_file:
-            if track:
-                log_file.write(f"Command: {command}\n")
-                log_file.flush()
-
-            #Pipe output to variable
-            if pipe:
-                stdout=subprocess.PIPE
-                stderr=subprocess.DEVNULL
-            #Print output to file
-            else:
-                stdout=log_file
-                stderr=subprocess.STDOUT
-            return utils.shell_command(f"{utils.env_list_to_string(self.env) if track else 'true'}; cd {self.workdir}; {command}",stdout=stdout,stderr=stderr,arbitrary=True)
+    def Run(self,command="",**kwargs):
+        command=f"{utils.env_list_to_string(self.env) if track else 'true'}; cd {self.workdir}; {command}"
+        super().Run(command,shell=True,**kwargs)
     
-    def Ps(self,process=None):
-        
-        #Find main process
-        if process=="main" or ("main" in self.flags):
-            return self.Class.get_main_process()
-            
-        #Find processes running under main Start script
-        elif process=="auxiliary" or ("auxiliary" in self.flags):
-            processes=utils.shell_command(["ps","auxwwe"]).splitlines()
-            processes=[_.split()[1] for _ in processes if f"SERVICE_NAME={self.name}" in _]
-            return list(map(int,processes))
-
+    def get_auxiliary_processes(self):
+        processes=utils.shell_command(["ps","auxwwe"]).splitlines()
+        processes=[_.split()[1] for _ in processes if f"SERVICE_NAME={self.name}" in _]
+        return list(map(int,processes))
     
-    def Env(self,env_var):
-        self.env.append(env_var)
     
     def Container(self,_container=None):
         #Convinence --- if conainer name is not specified, it will assume that the container is the same name as the service
@@ -95,23 +72,8 @@ class Service:
             func_str=func
             def func():
                 self.Run(func_str)
-        self.exit_cmds.append(func)
+        self.exit_commands.append(func)
         
-    def Loop(self,*args, **kwargs):
-        self.Class.loop(*args, **kwargs)
-        #Run(f'(while true; do "{command}"; sleep {delay}; done)')
-
-    def Wait(self,*args, **kwargs):
-        utils.wait(*args, **kwargs)
-    
-    def Exit(self,signum,frame):
-        for cmd in self.exit_cmds:
-            cmd()
-            
-        self.Class.kill_auxiliary_processes()
-        
-        exit()
-    
     def Dependency(self,service):
         if "Stopped" in self.__class__(service).Status():
             #self.temp_services.append(service)
@@ -147,16 +109,7 @@ class Service:
                 self.Wait()
                 exit()
             exit()
-       
-    def Stop(self):
-        return [self.Class.stop()]
-        
-    def Restart(self):
-        return self.Class.restart()
     
-    
-    def List(self):
-        return self.Class.list()
     
     def Workdir(self,work_dir):
         self.Class.workdir(work_dir)
@@ -199,14 +152,6 @@ class Service:
         if 'now' in self.flags:
             return [self.Stop()]
 
-    def Log(self):
-        self.Class.log()
-    
-    def Delete(self):
-        self.Class.delete()
-    
-    def Watch(self):
-        self.Class.watch()
 utils.CLASS=Service
 utils.ROOT=ROOT=utils.get_root_directory()
 def main():
