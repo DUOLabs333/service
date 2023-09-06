@@ -2,18 +2,23 @@
 import subprocess
 import os
 
-from utils import *
+import utils
 
-class Service:
-    def __init__(self,name,flags,**kwargs):
+class Service(utils.Class):
+    def __init__(self,name,flags=None,**kwargs):
         
-        self.env=kwargs.get("env",[f"SERVICE_NAME={self.name}"])
+        self.env=kwargs.get("env",[f"SERVICE_NAME={name}"])
         
         self.temp_services=[]
         
-        super().__init__(self,name,flags,kwargs)
+        super().__init__(name,flags,kwargs)
+        
+        try:
+            self.workdir
+        except:
+            self.workdir=self.directory
     
-    def _get_code():
+    def _get_config(self):
         if "Enabled" in self.Status():
             service_file="service.py"
         else:
@@ -28,8 +33,8 @@ class Service:
         
     #Functions to be used in *service.py
     def Run(self,command="",**kwargs):
-        command=f"{utils.env_list_to_string(self.env) if track else 'true'}; cd {self.workdir}; {command}"
-        super().Run(command,shell=True,**kwargs)
+        command_string=f"{utils.env_list_to_string(self.env) if kwargs.get('track',True) else 'true'}; cd {self.workdir}; {command}"
+        super().Run(command_string,display_command=command,shell=True,**kwargs)
         
     def Container(self,_container=None):
         #Convinence --- if conainer name is not specified, it will assume that the container is the same name as the service
@@ -75,7 +80,7 @@ class Service:
             
     #Commands      
 
-    def Init(self):
+    def command_Init(self):
         os.makedirs(self.directory,exist_ok=True)
         os.chdir(self.directory)
         os.makedirs("data",exist_ok=True)
@@ -85,16 +90,16 @@ class Service:
         if 'no-edit' not in self.flags:
             self.Edit()
 
-    def Edit(self):
+    def command_Edit(self):
         if "Enabled" in self.Status():
             utils.shell_command([os.getenv("EDITOR","vi"),os.path.join(self.directory,"service.py")],stdout=None)
         else:
             utils.shell_command([os.getenv("EDITOR","vi"),os.path.join(self.directory,".service.py")],stdout=None)
             
-    def Status(self):
-        return super().Status() + ["Enabled" if os.path.exists(os.path.join(self.directory,"service.py")) else "Disabled"]
+    def command_Status(self):
+        return super().command_Status() + ["Enabled" if os.path.exists(os.path.join(self.directory,"service.py")) else "Disabled"]
     
-    def Enable(self):
+    def command_Enable(self):
         if "Enabled" in self.Status():
             return [f"Service {self.name} is already enabled"]
         else:
@@ -104,7 +109,7 @@ class Service:
             return [self.Start()]
 
             
-    def Disable(self):
+    def command_Disable(self):
         if "Disabled" in self.Status():
             return [f"Service {self.name} is already disabled"]
         else:
