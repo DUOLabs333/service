@@ -17,6 +17,8 @@ class Service(utils.Class):
             self.workdir
         except:
             self.workdir=self.directory
+        
+        self.Workdir("data")
     
     def _get_config(self):
         if "Enabled" in self.Status():
