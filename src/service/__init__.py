@@ -36,7 +36,7 @@ class Service(utils.Class):
     #Functions to be used in *service.py
     def Run(self,command="",**kwargs):
         command_string=f"{utils.env_list_to_string(self.env) if kwargs.get('track',True) else 'true'}; cd {self.workdir}; {command}"
-        super().Run(command_string,display_command=command,shell=True,**kwargs)
+        return super().Run(command_string,display_command=command,shell=True,**kwargs)
         
     def Container(self,_container=None):
         #Convinence --- if conainer name is not specified, it will assume that the container is the same name as the service
