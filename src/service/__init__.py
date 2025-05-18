@@ -58,6 +58,27 @@ class Service(utils.Class):
         container_main_pid=utils.shell_command(["container","ps","--main",_container],stdout=subprocess.PIPE)
         
         #Wait until container ends
+
+        self.Wait()
+        """
+        If this works out, get the main pid
+        main_fd=os.pidfd_open(pid)
+        poll=select.poll()
+        poll.register(main_fd, select.POLLIN)
+        found = False
+        while True:
+            res = poll.poll()
+            for i in res:
+                if (i[0]==main_fd) and (i[1] & select.POLLIN != 0):
+                    found=True
+                    break
+            
+            if found:
+                break
+        Remove the Wait, since it will no longer be needed. Wrap it in try block and catch on AttributeError exceptions. 
+
+        Actually, just add it to utils as progressive enhancement
+        """
         try:
             container_main_pid=int(container_main_pid)
             utils.wait_until_pid_exits(container_main_pid)
@@ -70,7 +91,7 @@ class Service(utils.Class):
             func_str=func
             def func():
                 self.Run(func_str)
-        self.exit_commands.append(func)
+        self.shutdown_commands.append(func)
         
     def Dependency(self,service):
         if "Stopped" in self.__class__(service).Status():
