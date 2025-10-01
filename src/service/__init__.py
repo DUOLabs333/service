@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import subprocess
 import os
-
+import shlex
 import utils
 
 class Service(utils.Class):
@@ -48,9 +48,9 @@ class Service(utils.Class):
         self.Down(lambda : os.system(f"container stop {_container}"))
         
         #_container.Start()
-        self.Run(f"container start {_container}",track=False)
+        self.Run(shlex.join(["container", "start", _container]),track=False)
         
-        self.Run(f"echo Started container {_container}",track=False)
+        self.Run(shlex.join(["echo", f"Started container {_container}"]),track=False)
         
         with open(self.logfile,"a+") as f:
             utils.shell_command(["container", "watch", _container],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
