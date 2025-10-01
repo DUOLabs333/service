@@ -34,9 +34,11 @@ class Service(utils.Class):
         return list(map(int,processes))
         
     #Functions to be used in *service.py
-    def Run(self,command="",**kwargs):
+    def Run(self,command="",display_command=None,**kwargs):
+        if display_command is None:
+            display_command=command
         command_string=f"{utils.env_list_to_string(self.env) if kwargs.get('track',True) else 'true'}; cd {self.workdir}; {command}"
-        return super().Run(command_string,display_command=command,shell=True,**kwargs)
+        return super().Run(command_string,display_command=display_command,shell=True,**kwargs)
         
     def Container(self,_container=None):
         #Convinence --- if conainer name is not specified, it will assume that the container is the same name as the service
@@ -50,7 +52,7 @@ class Service(utils.Class):
         #_container.Start()
         self.Run(shlex.join(["container", "start", _container]),track=False)
         
-        self.Run(shlex.join(["echo", f"Started container {_container}"]),track=False)
+        self.Run("", display_command=f"Started container {_container}", track=True)
         
         with open(self.logfile,"a+") as f:
             utils.shell_command(["container", "watch", _container],stdout=f,block=False,env=os.environ.copy() | {"SERVICE_NAME":self.name})
